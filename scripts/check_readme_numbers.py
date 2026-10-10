@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import os
-import re
 import sys
 
 
@@ -20,14 +19,14 @@ def check_numbers():
     # Key metrics to verify
     rand_ens_ci = round(metrics["random_split"]["dtaplus_ensemble"]["ci"], 4)
     rand_ens_mse = round(metrics["random_split"]["dtaplus_ensemble"]["mse"], 4)
-    rand_gbm_ci = round(metrics["random_split"]["similarity_gbm"]["ci"], 4)
-    rand_gbm_mse = round(metrics["random_split"]["similarity_gbm"]["mse"], 4)
+    round(metrics["random_split"]["similarity_gbm"]["ci"], 4)
+    round(metrics["random_split"]["similarity_gbm"]["mse"], 4)
 
     cd_ens_ci = round(metrics["cold_drug_split_5seeds"]["dtaplus_ensemble"]["ci"]["mean"], 3)
-    cd_ens_mse = round(metrics["cold_drug_split_5seeds"]["dtaplus_ensemble"]["mse"]["mean"], 3)
+    round(metrics["cold_drug_split_5seeds"]["dtaplus_ensemble"]["mse"]["mean"], 3)
 
     ct_ens_ci = round(metrics["cold_target_split_5seeds"]["dtaplus_ensemble"]["ci"]["mean"], 3)
-    ct_ens_mse = round(metrics["cold_target_split_5seeds"]["dtaplus_ensemble"]["mse"]["mean"], 3)
+    round(metrics["cold_target_split_5seeds"]["dtaplus_ensemble"]["mse"]["mean"], 3)
 
     unc_corr = round(metrics["uncertainty_analysis"]["random_split_spearman_error_uncertainty"], 3)
 

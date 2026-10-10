@@ -7,6 +7,7 @@ sys.path.insert(0, os.path.abspath("src"))
 
 import numpy as np
 from fastapi.testclient import TestClient
+
 from service.app import app
 
 
