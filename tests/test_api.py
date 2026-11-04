@@ -90,3 +90,18 @@ def test_batch_over_limit_422(client):
     pairs = [{"smiles": "C", "protein_sequence": "AAAAA"} for _ in range(257)]
     response = client.post("/predict_batch", json={"items": pairs})
     assert response.status_code == 422
+
+
+def test_predict_with_compound_name(client):
+    payload = {
+        "compound_name": "Dasatinib",
+        "protein_sequence": "MKWVTFISLLFLFSSAYSRG",
+    }
+    response = client.post("/predict", json=payload)
+    assert response.status_code == 200
+    res = response.json()
+    assert "pkd" in res
+    assert "binding_level" in res
+    assert res["compound_name"] == "Dasatinib"
+    assert res["smiles"] is not None
+

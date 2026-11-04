@@ -14,6 +14,7 @@ from service.schemas import (
     HealthResponse,
     PredictionRequest,
     PredictionResponse,
+    categorize_binding_affinity,
 )
 
 # Structured logger setup
@@ -61,6 +62,7 @@ def health_check() -> HealthResponse:
 def predict_affinity(request: PredictionRequest) -> PredictionResponse:
     """
     Predicts pKd binding affinity, Kd in nM, and ensemble uncertainty spread for a single drug-target pair.
+    Supports either chemical compound name (e.g. 'Dasatinib') or SMILES string.
     """
     if model_instance is None:
         raise HTTPException(
@@ -68,8 +70,10 @@ def predict_affinity(request: PredictionRequest) -> PredictionResponse:
             detail="Model is not initialized.",
         )
 
+    assert request.smiles is not None
     logger.info(
-        "Received /predict request: SMILES len=%d, Protein seq len=%d",
+        "Received /predict request: Compound=%s, SMILES len=%d, Protein seq len=%d",
+        request.compound_name or "N/A",
         len(request.smiles),
         len(request.protein_sequence),
     )
@@ -77,12 +81,16 @@ def predict_affinity(request: PredictionRequest) -> PredictionResponse:
     pkd, kd_nm, unc, binds = model_instance.predict_pair(
         request.smiles, request.protein_sequence
     )
+    binding_level = categorize_binding_affinity(pkd)
 
     return PredictionResponse(
         pkd=round(pkd, 4),
         kd_nM=round(kd_nm, 2),
         uncertainty=round(unc, 4),
         binds=binds,
+        binding_level=binding_level,
+        compound_name=request.compound_name,
+        smiles=request.smiles,
     )
 
 
@@ -102,16 +110,19 @@ def predict_batch_affinity(request: BatchPredictionRequest) -> list[PredictionRe
     logger.info("Received /predict_batch request for %d items", n_items)
 
     pairs = [(item.smiles, item.protein_sequence) for item in request.items]
-    batch_results = model_instance.predict_batch_pairs(pairs)
+    batch_results = model_instance.predict_batch_pairs(pairs)  # type: ignore
 
     responses = []
-    for r in batch_results:
+    for req_item, r in zip(request.items, batch_results):
         responses.append(
             PredictionResponse(
                 pkd=r["pkd"],
                 kd_nM=r["kd_nM"],
                 uncertainty=r["uncertainty"],
                 binds=r["binds"],
+                binding_level=categorize_binding_affinity(r["pkd"]),
+                compound_name=req_item.compound_name,
+                smiles=req_item.smiles,
             )
         )
     return responses

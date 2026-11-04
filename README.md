@@ -25,22 +25,30 @@ However, the legacy repository suffers from severe engineering and evaluation bo
 
 ```
 deepdta-plus/
+├── data_loader.py          # Modular data loading entrypoint (DavisData, dataloaders)
+├── train.py                # Zero-friction training runner (CNN, smoke mode)
+├── evaluate.py             # Benchmarking & evaluation runner across all splits
+├── models/                 # Model architecture package (DeepDTACNN, GBM, Ensemble)
+├── requirements.txt        # Zero-friction pip dependencies
+├── environment.yml         # Conda environment configuration
 ├── src/dtaplus/
-│   ├── data.py             # Davis loading, tokenization, random/cold-drug/cold-target splits
+│   ├── compounds.py        # Chemical name lookup & PubChem resolver with caching
+│   ├── data_loader.py      # Core data loaders, PyTorch datasets, and split generators
+│   ├── data.py             # Backward-compatible data re-exports
 │   ├── metrics.py          # Fast O(N log N) CI, MSE, r2m, AUPR (Java-free), Spearman
 │   ├── models/
 │   │   ├── cnn.py          # Faithful DeepDTA dual-branch 1D-CNN in PyTorch
 │   │   ├── gbm.py          # Bio-similarity & k-mer SVD gradient boosting
 │   │   └── ensemble.py     # Multi-branch ensemble with validation tuning
-│   ├── train.py            # CNN training with --smoke and checkpointing
+│   ├── train.py            # CNN training engine with checkpointing
 │   ├── evaluate.py         # Full benchmark generator across all splits & figures
 │   └── uncertainty.py      # Ensemble spread and correlation with test error
 ├── service/
-│   ├── app.py              # Production FastAPI app (/health, /predict, /predict_batch)
-│   └── schemas.py          # Pydantic sequence validators & response schemas
+│   ├── app.py              # Production FastAPI app with compound name resolution
+│   └── schemas.py          # Pydantic sequence validators & simplified classification
 ├── demo/
-│   └── streamlit_app.py    # Interactive screening UI with real-time feedback
-├── tests/                  # 19 passing unit & integration tests
+│   └── streamlit_app.py    # Interactive UI with compound search & simplified terms
+├── tests/                  # 27 passing unit & integration tests
 ├── scripts/
 │   ├── loadtest.py         # 200-request latency benchmark
 │   └── check_readme_numbers.py  # Automated consistency verifier
@@ -98,35 +106,47 @@ All values are generated automatically by `python -m dtaplus.evaluate --all` and
 
 ## 5. Quick Start
 
-### Installation
+### Zero-Friction Installation
 ```bash
 # Clone repository
-git clone https://github.com/hkmztrk/DeepDTA.git
-cd DeepDTA
+git clone https://github.com/SC-Charan/DeepDTA-Plus.git
+cd DeepDTA-Plus
 
-# Install in editable mode
+# Option A: Install via requirements.txt
+pip install -r requirements.txt
+
+# Option B: Install with Conda environment
+conda env create -f environment.yml
+conda activate deepdta-plus
+
+# Option C: Editable package mode
 pip install -e ".[dev]"
 ```
 
-### Reproduce Benchmarks
+### Reproduce Benchmarks & Modular Execution
 ```bash
-# Run all unit tests (19 tests)
+# Run all unit tests (27 tests)
 pytest -v
 
-# Run smoke CNN training (< 1 min on CPU)
-python -m dtaplus.train --model cnn --smoke
+# Run smoke CNN training via root runner (< 1 min on CPU)
+python train.py --smoke
 
 # Run full evaluation benchmark across all splits & generate figures
-python -m dtaplus.evaluate --all
+python evaluate.py --all
+
+# Test modular data loading
+python data_loader.py
 
 # Verify all numbers match results/metrics.json
 python scripts/check_readme_numbers.py
 ```
 
-### Run Web Demo
+### Run Interactive Web Demo
 ```bash
 streamlit run demo/streamlit_app.py
 ```
+> **New Feature:** The Web UI now supports direct **Chemical Compound Name Lookup** (e.g. *Dasatinib*, *Lapatinib*, *Imatinib*, *Aspirin*, *Metformin*) with instant sub-millisecond local resolution, PubChem fallbacks, and intuitive binding categories (**Very High Binding**, **High Binding**, **Moderate Binding**, and **No Significant Binding**).
+
 
 ![Demo Screenshot](docs/demo.png)
 

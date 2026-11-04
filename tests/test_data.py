@@ -67,3 +67,20 @@ def test_encode_helpers():
 
     with pytest.raises(ValueError):
         encode_protein("MK123INVALID")
+
+
+def test_top_level_modular_imports():
+    # Verify root-level zero-friction modular structure
+    import data_loader
+    import evaluate
+    import models
+    import train
+
+    assert hasattr(data_loader, "DavisData")
+    assert hasattr(data_loader, "create_dataloader")
+    assert hasattr(train, "train_cnn")
+    assert hasattr(evaluate, "evaluate_gbm_split")
+    assert hasattr(models, "DeepDTACNN")
+    assert hasattr(models, "SimilarityGBM")
+    assert hasattr(models, "DTAEnsemble")
+
