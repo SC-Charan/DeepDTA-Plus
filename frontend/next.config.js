@@ -1,21 +1,34 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
+  // Vercel handles image optimization natively
   images: {
     remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: '**',
-      },
+      { protocol: "https", hostname: "pubchem.ncbi.nlm.nih.gov" },
     ],
+    unoptimized: false,
   },
+  // Proxy to FastAPI backend (set NEXT_PUBLIC_API_URL in Vercel env vars)
   async rewrites() {
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+    const backend = process.env.NEXT_PUBLIC_API_URL;
+    if (!backend) return [];
     return [
       {
-        source: '/api/backend/:path*',
-        destination: `${backendUrl}/:path*`,
+        source: "/api/backend/:path*",
+        destination: `${backend}/:path*`,
+      },
+    ];
+  },
+  // Security headers
+  async headers() {
+    return [
+      {
+        source: "/(.*)",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+        ],
       },
     ];
   },

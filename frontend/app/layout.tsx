@@ -1,42 +1,32 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 
 export const metadata: Metadata = {
-  title: "DeepDTA-Plus | Drug-Target Binding Affinity Prediction Platform",
+  title: "DeepDTA | Drug-Target Binding Affinity Prediction",
   description:
-    "Production-grade, honest AI drug discovery platform predicting binding affinity (pKd/Kd) with calibrated ensemble uncertainty and dual sequence-topological representations.",
-  keywords: [
-    "DeepDTA",
-    "Drug-Target Affinity",
-    "Bioinformatics",
-    "Binding Affinity",
-    "SMILES",
-    "Kinase Inhibitors",
-    "Protein Sequence",
-    "AI Drug Discovery",
-  ],
-  authors: [{ name: "DeepDTA-Plus Engineering Team" }],
-  viewport: "width=device-width, initial-scale=1, maximum-scale=1",
+    "Predict drug-protein binding affinity (pKd / Kd) using a dual-branch CNN trained on the Davis kinase inhibitor dataset. Built with PyTorch and RDKit.",
+  keywords: ["DeepDTA", "drug-target affinity", "binding affinity", "SMILES", "bioinformatics", "PyTorch", "RDKit"],
+  authors: [{ name: "Team G1542" }],
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="dark">
-      <body className="min-h-screen bg-background text-zinc-100 flex overflow-hidden">
-        {/* Left App Navigation Shell */}
+      <body className="flex h-screen overflow-hidden bg-background text-fg antialiased">
         <Sidebar />
-
-        {/* Main Content Area */}
-        <div className="flex flex-1 flex-col overflow-y-auto h-screen">
+        <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
           <Header />
-          <main className="flex-1 p-6 max-w-7xl w-full mx-auto pb-16">
-            {children}
+          <main className="flex-1 overflow-y-auto">
+            <div className="mx-auto max-w-6xl px-6 py-6 pb-16">
+              {children}
+            </div>
           </main>
         </div>
       </body>

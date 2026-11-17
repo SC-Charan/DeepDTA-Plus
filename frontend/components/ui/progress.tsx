@@ -2,22 +2,29 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 interface ProgressProps extends React.HTMLAttributes<HTMLDivElement> {
-  value: number; // 0 to 100
+  value?: number;
   indicatorColor?: string;
 }
 
-export function Progress({ value, className, indicatorColor = "bg-brand-500", ...props }: ProgressProps) {
-  const clamped = Math.min(100, Math.max(0, value));
-
-  return (
+export const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
+  ({ className, value = 0, indicatorColor, ...props }, ref) => (
     <div
-      className={cn("relative h-2 w-full overflow-hidden rounded-full bg-surface-100", className)}
+      ref={ref}
+      role="progressbar"
+      aria-valuenow={value}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      className={cn("relative h-1.5 w-full overflow-hidden rounded-full bg-surface-elevated border border-surface-border/40", className)}
       {...props}
     >
       <div
-        className={cn("h-full transition-all duration-500 ease-out rounded-full", indicatorColor)}
-        style={{ width: `${clamped}%` }}
+        className={cn(
+          "h-full rounded-full transition-all duration-500 ease-out",
+          indicatorColor ?? "bg-brand-emphasis"
+        )}
+        style={{ width: `${Math.min(100, Math.max(0, value))}%` }}
       />
     </div>
-  );
-}
+  )
+);
+Progress.displayName = "Progress";
