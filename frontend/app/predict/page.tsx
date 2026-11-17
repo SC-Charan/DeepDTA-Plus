@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   FlaskConical,
@@ -46,7 +46,7 @@ import {
   exportToJson,
 } from "@/lib/utils";
 
-export default function PredictorStudioPage() {
+function PredictorStudioContent() {
   const searchParams = useSearchParams();
   const urlSmiles = searchParams.get("smiles") ?? "";
   const urlName = searchParams.get("name") ?? "";
@@ -625,5 +625,13 @@ export default function PredictorStudioPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PredictorStudioPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-xs text-zinc-400">Loading Predictor Studio...</div>}>
+      <PredictorStudioContent />
+    </Suspense>
   );
 }
