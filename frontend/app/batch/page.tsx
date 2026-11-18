@@ -6,7 +6,6 @@ import {
   UploadCloud,
   FileSpreadsheet,
   Download,
-  Filter,
   Search,
   CheckCircle2,
   AlertCircle,
@@ -14,12 +13,12 @@ import {
   RotateCcw,
   Sparkles,
   ArrowUpDown,
-  Copy,
+  FileText,
+  Info,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { BatchItem, BindingCategory } from "@/lib/types";
 import { SAMPLE_COMPOUNDS, SAMPLE_PROTEINS } from "@/lib/mock-data";
@@ -31,6 +30,7 @@ export default function BatchScreeningPage() {
   const [targetProtein, setTargetProtein] = useState(SAMPLE_PROTEINS[0]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [uploadMessage, setUploadMessage] = useState<string | null>(null);
 
   // Filters & Search
   const [searchQuery, setSearchQuery] = useState("");
@@ -50,47 +50,97 @@ export default function BatchScreeningPage() {
     }));
     setItems(sampleRows);
     setProgress(0);
+    setUploadMessage(`Loaded sample library with ${sampleRows.length} reference drugs.`);
   };
 
-  // CSV file parser
+  // Robust CSV Parser
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setUploadMessage(null);
     const reader = new FileReader();
     reader.onload = (event) => {
       const text = event.target?.result as string;
       if (!text) return;
 
-      const lines = text.split("\n").filter((l) => l.trim().length > 0);
-      if (lines.length <= 1) return;
+      const lines = text
+        .split(/\r?\n/)
+        .map((l) => l.trim())
+        .filter((l) => l.length > 0);
 
-      // Simple CSV parse
-      const newItems: BatchItem[] = [];
-      // Skip header line
-      for (let i = 1; i < lines.length; i++) {
-        const parts = lines[i].split(",").map((p) => p.replace(/^["']|["']$/g, "").trim());
-        if (parts.length >= 2) {
-          const compName = parts[0] || `Compound_${i}`;
-          const smi = parts[1];
-          const tgtId = parts[2] || targetProtein.id;
-          newItems.push({
-            id: `batch-upload-${i}`,
-            compound_name: compName,
-            smiles: smi,
-            target_id: tgtId,
-            target_sequence: targetProtein.sequence,
-            status: "pending",
-          });
-        }
+      if (lines.length <= 1) {
+        setUploadMessage("The CSV file appears to be empty or has only a header row.");
+        return;
       }
 
-      if (newItems.length > 0) {
-        setItems(newItems);
+      // Parse headers
+      const rawHeaders = lines[0].split(",").map((h) => h.replace(/^["']|["']$/g, "").trim().toLowerCase());
+
+      let nameCol = rawHeaders.findIndex((h) => h.includes("name") || h.includes("compound") || h === "drug");
+      let smiCol = rawHeaders.findIndex((h) => h.includes("smiles") || h === "smi" || h.includes("structure"));
+      let targetIdCol = rawHeaders.findIndex((h) => h.includes("target_id") || h === "target" || h.includes("protein_id"));
+      let seqCol = rawHeaders.findIndex((h) => h.includes("sequence") || h.includes("seq") || h.includes("protein_seq"));
+
+      // Fallbacks if not named standardly
+      if (smiCol === -1) {
+        smiCol = rawHeaders.length > 1 ? 1 : 0;
+      }
+      if (nameCol === -1) {
+        nameCol = smiCol === 0 ? 1 : 0;
+      }
+
+      const parsed: BatchItem[] = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        // Simple CSV splitter handling quoted values
+        const row = lines[i];
+        const parts: string[] = [];
+        let inQuotes = false;
+        let current = "";
+        for (let c = 0; c < row.length; c++) {
+          const char = row[c];
+          if (char === '"' || char === "'") {
+            inQuotes = !inQuotes;
+          } else if (char === "," && !inQuotes) {
+            parts.push(current.trim());
+            current = "";
+          } else {
+            current += char;
+          }
+        }
+        parts.push(current.trim());
+
+        const cleanedParts = parts.map((p) => p.replace(/^["']|["']$/g, "").trim());
+
+        const smi = cleanedParts[smiCol] || "";
+        if (!smi) continue;
+
+        const compName = (nameCol >= 0 && cleanedParts[nameCol]) || `Compound_${i}`;
+        const tId = (targetIdCol >= 0 && cleanedParts[targetIdCol]) || targetProtein.id;
+        const tSeq = (seqCol >= 0 && cleanedParts[seqCol]) || targetProtein.sequence;
+
+        parsed.push({
+          id: `csv-${Date.now()}-${i}`,
+          compound_name: compName,
+          smiles: smi,
+          target_id: tId,
+          target_sequence: tSeq,
+          status: "pending",
+        });
+      }
+
+      if (parsed.length > 0) {
+        setItems(parsed);
         setProgress(0);
+        setUploadMessage(`Successfully parsed ${parsed.length} compounds from "${file.name}". Ready for screening.`);
+      } else {
+        setUploadMessage("Could not extract valid SMILES rows. Please check file format.");
       }
     };
     reader.readAsText(file);
+    // Reset file input so user can re-select
+    e.target.value = "";
   };
 
   // Execute batch screening
@@ -100,18 +150,18 @@ export default function BatchScreeningPage() {
     setProgress(15);
 
     try {
-      // Simulate stepped progress
       const progressTimer = setInterval(() => {
-        setProgress((prev) => (prev < 85 ? prev + 18 : prev));
-      }, 350);
+        setProgress((prev) => (prev < 90 ? prev + 15 : prev));
+      }, 300);
 
       const processed = await predictBatch(items);
       clearInterval(progressTimer);
 
       setProgress(100);
       setItems(processed);
+      setUploadMessage(`Screening complete! Processed ${processed.length} compounds.`);
     } catch {
-      // Error handling
+      setUploadMessage("An error occurred during screening.");
     } finally {
       setIsProcessing(false);
     }
@@ -127,10 +177,11 @@ export default function BatchScreeningPage() {
       Target_ID: item.target_id,
       Predicted_pKd: item.pkd ?? "N/A",
       Equilibrium_Kd_nM: item.kd_nM ?? "N/A",
+      Uncertainty_Spread: item.uncertainty ?? "N/A",
       Binding_Level: item.binding_level ?? "Unprocessed",
       Status: item.status,
     }));
-    exportToCsv(`deepdta_batch_screening_${targetProtein.id}_${Date.now()}.csv`, exportRows);
+    exportToCsv(`deepdta_screening_${targetProtein.id}_${Date.now()}.csv`, exportRows);
   };
 
   // Filtered and sorted items
@@ -158,10 +209,10 @@ export default function BatchScreeningPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
             <Layers className="h-6 w-6 text-teal-400" />
-            Batch Screening Studio
+            Batch Virtual Screening Studio
           </h1>
           <p className="text-xs text-zinc-400 mt-1">
-            High-throughput binding affinity screening of compound libraries against kinase targets.
+            High-throughput binding affinity screening of compound libraries against kinase targets with uncertainty estimation.
           </p>
         </div>
 
@@ -184,11 +235,18 @@ export default function BatchScreeningPage() {
               className="text-xs gap-1.5"
             >
               <Download className="h-3.5 w-3.5" />
-              Export Screened CSV
+              Export Results CSV
             </Button>
           )}
         </div>
       </div>
+
+      {uploadMessage && (
+        <div className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-surface-elevated border border-surface-border text-xs text-zinc-300">
+          <Info className="h-4 w-4 text-teal-400 flex-shrink-0" />
+          <span>{uploadMessage}</span>
+        </div>
+      )}
 
       {/* Target Selector & CSV Upload Dropzone */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -223,33 +281,41 @@ export default function BatchScreeningPage() {
           </CardContent>
         </Card>
 
-        {/* CSV Dropzone (2 cols on md) */}
+        {/* CSV Dropzone */}
         <Card className="md:col-span-2 border-surface-border flex flex-col justify-between">
           <CardHeader className="pb-2">
             <CardTitle className="text-xs uppercase font-mono text-zinc-400">
-              Upload Compound Library
+              Upload Compound Library CSV
             </CardTitle>
             <CardDescription>
-              Drag and drop a CSV file containing columns: <code>Compound_Name, SMILES</code>
+              Drag & drop a CSV file containing columns: <code>Compound_Name, SMILES</code> (optionally <code>Target_ID, Sequence</code>)
             </CardDescription>
           </CardHeader>
 
-          <CardContent>
-            <label className="flex flex-col items-center justify-center h-36 rounded-xl border-2 border-dashed border-surface-border hover:border-brand-500/50 bg-surface-elevated/40 hover:bg-brand-500/5 transition-all cursor-pointer">
-              <UploadCloud className="h-8 w-8 text-brand-400 mb-2" />
+          <CardContent className="space-y-3">
+            <label className="flex flex-col items-center justify-center h-32 rounded-xl border-2 border-dashed border-surface-border hover:border-brand-500/50 bg-surface-elevated/40 hover:bg-brand-500/5 transition-all cursor-pointer">
+              <UploadCloud className="h-8 w-8 text-brand-400 mb-1" />
               <span className="text-xs font-semibold text-zinc-200">
                 Click to browse or drop CSV library here
               </span>
               <span className="text-[10px] text-zinc-400 mt-1">
-                Supports up to 256 molecules per batch screening
+                CSV, TSV, or TXT (up to 256 molecules per run)
               </span>
               <input
                 type="file"
-                accept=".csv"
+                accept=".csv,.txt,.tsv"
                 onChange={handleFileUpload}
                 className="hidden"
               />
             </label>
+
+            <div className="flex items-center justify-between text-[11px] text-zinc-400 px-1 font-mono">
+              <span className="flex items-center gap-1.5">
+                <FileText className="h-3.5 w-3.5 text-zinc-500" />
+                Format: Compound_Name, SMILES
+              </span>
+              <span>Active Target: {targetProtein.id}</span>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -262,10 +328,10 @@ export default function BatchScreeningPage() {
               <div>
                 <CardTitle className="text-sm font-semibold flex items-center gap-2">
                   <FileSpreadsheet className="h-4 w-4 text-teal-400" />
-                  Library Queue ({items.length} Compounds)
+                  Screening Queue ({items.length} Compounds)
                 </CardTitle>
                 <CardDescription>
-                  Screening against <strong className="text-teal-300">{targetProtein.id}</strong> ({targetProtein.name})
+                  Target: <strong className="text-teal-300">{targetProtein.id}</strong> ({targetProtein.name})
                 </CardDescription>
               </div>
 
@@ -283,7 +349,10 @@ export default function BatchScreeningPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setItems([])}
+                  onClick={() => {
+                    setItems([]);
+                    setUploadMessage(null);
+                  }}
                   className="text-xs"
                 >
                   <RotateCcw className="h-3.5 w-3.5 mr-1" />
@@ -292,11 +361,11 @@ export default function BatchScreeningPage() {
               </div>
             </div>
 
-            {/* Progress bar if screening */}
+            {/* Progress bar */}
             {isProcessing && (
               <div className="pt-3 space-y-1">
                 <div className="flex justify-between text-xs font-mono text-zinc-400">
-                  <span>Evaluating molecular features...</span>
+                  <span>Evaluating molecular features & dual CNN encoding...</span>
                   <span className="text-brand-400">{progress}%</span>
                 </div>
                 <Progress value={progress} className="h-2" />
@@ -418,7 +487,7 @@ export default function BatchScreeningPage() {
               <span>
                 Showing {filteredItems.length} of {items.length} compounds ({completedCount} screened)
               </span>
-              <span>Target: {targetProtein.id} (P00519)</span>
+              <span>Target: {targetProtein.id} ({targetProtein.uniprot})</span>
             </div>
           </CardContent>
         </Card>

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, status
@@ -27,6 +28,8 @@ logger = logging.getLogger("dtaplus.api")
 # Global singleton model
 model_instance: DTAEnsemble | None = None
 
+DEFAULT_CHECKPOINT_PATH = "results/checkpoints/deepdta_cnn_best.pt"
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -35,9 +38,18 @@ async def lifespan(app: FastAPI):
     data = DavisData(data_dir="data/davis")
     train_idx = data.official_train_union
     splits = data.get_random_split(val_fold_idx=0)
-    model_instance = DTAEnsemble(num_gbm_seeds=3, random_state=42)
+
+    # Initialize ensemble with CNN checkpoint path
+    ckpt_path = os.environ.get("DEEPDTA_CNN_CHECKPOINT", DEFAULT_CHECKPOINT_PATH)
+    model_instance = DTAEnsemble(
+        num_gbm_seeds=3,
+        random_state=42,
+        cnn_checkpoint_path=ckpt_path if os.path.exists(ckpt_path) else None,
+    )
     model_instance.fit_dataset(data, train_idx, val_idx=splits.val_idx, split_type="random")
-    logger.info("DeepDTA+ ensemble loaded successfully and ready to serve predictions.")
+
+    cnn_status = "active" if model_instance.cnn_available else "dormant (weights not found)"
+    logger.info("DeepDTA+ ensemble loaded successfully (CNN branch: %s).", cnn_status)
     yield
     logger.info("Shutting down DeepDTA+ service.")
 
@@ -55,7 +67,12 @@ app = FastAPI(
 @app.get("/health", response_model=HealthResponse, tags=["Health"])
 def health_check() -> HealthResponse:
     """Service health and model metadata check."""
-    return HealthResponse(status="ok", model_version="0.1.0", dataset="davis")
+    cnn_active = bool(model_instance and model_instance.cnn_available)
+    return HealthResponse(
+        status="ok",
+        model_version="0.1.0",
+        dataset=f"davis (CNN: {'active' if cnn_active else 'gbm-fallback'})",
+    )
 
 
 @app.post("/predict", response_model=PredictionResponse, tags=["Inference"])

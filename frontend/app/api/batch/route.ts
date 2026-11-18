@@ -8,7 +8,8 @@ const FASTAPI_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
 export async function POST(req: NextRequest) {
   try {
-    const { items }: { items: BatchItem[] } = await req.json();
+    const body = await req.json();
+    const items: BatchItem[] = body.items;
 
     if (!Array.isArray(items) || items.length === 0) {
       return NextResponse.json(
@@ -55,12 +56,20 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ items: updatedItems });
       }
     } catch {
-      // Fallback
+      // Backend offline or unreachable -> fallback gracefully
     }
 
     // High-fidelity fallback batch computation
     const updatedItems: BatchItem[] = items.map((item) => {
       try {
+        if (!item.smiles || !item.target_sequence) {
+          return {
+            ...item,
+            status: "failed",
+            error: "Missing SMILES or Target Sequence",
+          };
+        }
+
         const pred = generateMockPrediction(
           item.smiles,
           item.target_sequence,

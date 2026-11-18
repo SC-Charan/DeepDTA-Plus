@@ -4,4 +4,5 @@ __pycache__/
 *.egg-info/
 .pytest_cache/
 .ruff_cache/
-*.pt
+# Allow tracking of best checkpoint weights in git
+# *.pt
