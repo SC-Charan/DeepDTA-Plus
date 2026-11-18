@@ -102,8 +102,8 @@ The frontend will automatically use the FastAPI backend if it's running, or fall
 
 | Name | Roll No. |
 |------|----------|
-| Havisha | 245525733012 |
-| SaiCharan | 245525733021 |
+| SaiCharan | 245525733021 | Team Lead
+| Havisha | 245525733012 | asst. Team Lead
 | Abhinov | 245525733001 |
 | Rishitha | 245525733020 |
 | Hariharan | 245525733002 |
