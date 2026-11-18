@@ -54,11 +54,11 @@ const DATASETS = [
 ];
 
 const BASELINE_DATA = [
+  { model: "DeepDTA+ CNN\n(100 Epochs)", ci: 0.8866, mse: 0.258, r2m: 0.638, aupr: 0.716 },
   { model: "DeepDTA+\nEnsemble", ci: 0.8852, mse: 0.274, r2m: 0.601, aupr: 0.709 },
-  { model: "DeepDTA+\nSimilarity", ci: 0.8813, mse: 0.283, r2m: 0.600, aupr: 0.698 },
   { model: "DeepDTA CNN\n(Original)", ci: 0.878, mse: 0.261, r2m: 0.630, aupr: 0.714 },
   { model: "SimBoost", ci: 0.872, mse: 0.282, r2m: 0.644, aupr: 0.703 },
-  { model: "KronRLS", ci: 0.871, mse: 0.379, r2m: 0.611, aupr: 0.661 },
+  { model: "KronRLS", ci: 0.871, mse: 0.379, r2m: 0.411, aupr: 0.661 },
   { model: "Predict-\nMean", ci: 0.5, mse: 0.802, r2m: 0.0, aupr: 0.083 },
 ];
 
