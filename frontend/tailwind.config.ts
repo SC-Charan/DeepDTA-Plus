@@ -1,5 +1,15 @@
 import type { Config } from "tailwindcss";
 
+const palette = {
+  page: "#203B6F",
+  panel: "#312048",
+  secondary: "#384F95",
+  pixel: "#8E68A9",
+  accent: "#BC7EBF",
+  heading: "#DBC9F9",
+  body: "#A6BAEE",
+} as const;
+
 const config: Config = {
   darkMode: "class",
   content: [
@@ -8,127 +18,169 @@ const config: Config = {
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
+    // Replaces Tailwind's default colours: the palette is the entire colour set.
+    colors: {
+      transparent: "transparent",
+      current: "currentColor",
+      inherit: "inherit",
+
+      // Semantic tokens
+      page: palette.page, // bg-page
+      panel: palette.panel, // bg-panel
+      secondary: palette.secondary, // bg-secondary
+      pixel: palette.pixel, // border-pixel
+      "btn-accent": palette.accent, // bg-btn-accent
+      accent: palette.accent,
+      heading: palette.heading, // text-heading
+      body: palette.body, // text-body
+
+      // Binding-status tokens (brightness + fill pattern, never colour alone)
+      "binding-veryhigh": { DEFAULT: "#DBC9F9", text: "#312048" },
+      "binding-high": { DEFAULT: "#BC7EBF", text: "#312048" },
+      "binding-moderate": { DEFAULT: "#A6BAEE", text: "#312048" },
+      "binding-none": { DEFAULT: "#384F95", text: "#A6BAEE", border: "#8E68A9" },
+
+      // Legacy aliases, remapped onto the palette so existing class names keep resolving
+      background: palette.page,
+      canvas: {
+        DEFAULT: palette.page,
+        subtle: palette.panel,
+        inset: palette.panel,
+        overlay: palette.secondary,
+      },
+      surface: {
+        DEFAULT: palette.page,
+        card: palette.panel,
+        elevated: palette.secondary,
+        overlay: palette.secondary,
+        border: palette.pixel,
+        hover: palette.secondary,
+      },
+      fg: {
+        DEFAULT: palette.heading,
+        muted: palette.body,
+        subtle: palette.pixel,
+        on_emphasis: palette.panel,
+      },
+      brand: {
+        50: palette.heading,
+        100: palette.heading,
+        200: palette.heading,
+        300: palette.accent,
+        400: palette.accent,
+        500: palette.accent,
+        600: palette.accent,
+        700: palette.pixel,
+        800: palette.secondary,
+        900: palette.panel,
+        accent: palette.accent,
+        emphasis: palette.heading,
+        muted: palette.pixel,
+      },
+      teal: {
+        50: palette.heading,
+        300: palette.body,
+        400: palette.body,
+        500: palette.body,
+        600: palette.body,
+        700: palette.secondary,
+        accent: palette.body,
+      },
+      danger: {
+        DEFAULT: palette.heading,
+        muted: palette.pixel,
+        subtle: palette.secondary,
+        emphasis: palette.accent,
+      },
+      neutral: {
+        50: palette.heading,
+        100: palette.heading,
+        200: palette.heading,
+        300: palette.body,
+        400: palette.body,
+        500: palette.pixel,
+        600: palette.pixel,
+        700: palette.secondary,
+        800: palette.secondary,
+        900: palette.panel,
+        950: palette.page,
+      },
+    },
+
+    // border-radius: 0 everywhere, no exceptions
+    borderRadius: {
+      none: "0",
+      sm: "0",
+      DEFAULT: "0",
+      md: "0",
+      lg: "0",
+      xl: "0",
+      "2xl": "0",
+      "3xl": "0",
+      full: "0",
+    },
+
+    // Inset bevels only. No outer shadows, glows, blur or spread.
+    boxShadow: {
+      none: "none",
+      DEFAULT: "inset 2px 2px 0 0 #384F95, inset -2px -2px 0 0 #203B6F",
+      bevel: "inset 2px 2px 0 0 #384F95, inset -2px -2px 0 0 #203B6F",
+      "bevel-secondary": "inset 2px 2px 0 0 #A6BAEE, inset -2px -2px 0 0 #312048",
+      "bevel-sunken": "inset 2px 2px 0 0 #312048, inset -2px -2px 0 0 #384F95",
+      "bevel-accent": "inset 2px 2px 0 0 #DBC9F9, inset -2px -2px 0 0 #8E68A9",
+      "bevel-accent-pressed": "inset 2px 2px 0 0 #8E68A9, inset -2px -2px 0 0 #DBC9F9",
+      // Legacy names
+      card: "inset 2px 2px 0 0 #384F95, inset -2px -2px 0 0 #203B6F",
+      "card-hover": "inset 2px 2px 0 0 #384F95, inset -2px -2px 0 0 #203B6F",
+      "glow-sm": "none",
+      glow: "none",
+      "glow-teal": "none",
+      z1: "none",
+      z2: "none",
+      z3: "none",
+      z4: "none",
+    },
+
+    // Rings are outer spread shadows, so they are disabled. Focus uses outline.
+    ringWidth: { DEFAULT: "0px", 0: "0px" },
+    dropShadow: {},
+    backdropBlur: {},
+
+    // No animation other than simple state transitions
+    keyframes: {},
+    animation: { none: "none" },
+
     extend: {
-      colors: {
-        // GitHub-inspired dark palette — clean, professional
-        background: "#07090f",
-        canvas: {
-          DEFAULT: "#07090f",
-          subtle:  "#0d1117",
-          inset:   "#010409",
-          overlay: "#161b22",
-        },
-        surface: {
-          DEFAULT: "#07090f",
-          card:    "#0d1117",
-          elevated:"#161b22",
-          overlay: "#1c2333",
-          border:  "#21262d",
-          hover:   "#30363d",
-        },
-        fg: {
-          DEFAULT: "#e6edf3",
-          muted:   "#8b949e",
-          subtle:  "#6e7681",
-          on_emphasis: "#ffffff",
-        },
-        // Accent — emerald/teal (kept minimal)
-        brand: {
-          50:  "#f0fdf4",
-          100: "#dcfce7",
-          200: "#bbf7d0",
-          300: "#86efac",
-          400: "#4ade80",
-          500: "#22c55e",
-          600: "#16a34a",
-          700: "#15803d",
-          800: "#166534",
-          900: "#14532d",
-          // Core accent
-          accent: "#238636",
-          emphasis: "#2ea043",
-          muted:  "#1a7f37",
-        },
-        // Teal secondary
-        teal: {
-          50:  "#f0fdfa",
-          300: "#5eead4",
-          400: "#2dd4bf",
-          500: "#14b8a6",
-          600: "#0d9488",
-          700: "#0f766e",
-          accent: "#0f8080",
-        },
-        // Danger / red
-        danger: {
-          DEFAULT: "#f85149",
-          muted:   "#b62324",
-          subtle:  "#490202",
-          emphasis: "#da3633",
-        },
-        // Neutral scale matching GitHub's exact grays
-        neutral: {
-          50:  "#f6f8fa",
-          100: "#eaeef2",
-          200: "#d0d7de",
-          300: "#afb8c1",
-          400: "#8c959f",
-          500: "#6e7781",
-          600: "#57606a",
-          700: "#424a53",
-          800: "#32383f",
-          900: "#24292f",
-          950: "#1c2128",
-        },
-      },
       fontFamily: {
-        sans: ["Inter", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "system-ui", "sans-serif"],
-        mono: ["JetBrains Mono", "Fira Code", "Cascadia Code", "Menlo", "Monaco", "Consolas", "monospace"],
+        sans: ["var(--font-body)", "ui-monospace", "Menlo", "Consolas", "monospace"],
+        mono: ["var(--font-body)", "ui-monospace", "Menlo", "Consolas", "monospace"],
+        body: ["var(--font-body)", "ui-monospace", "Menlo", "Consolas", "monospace"],
+        pixel: ["var(--font-pixel)", "ui-monospace", "Menlo", "Consolas", "monospace"],
       },
+      // Scaled up so VT323 stays readable and the hierarchy stays correct
       fontSize: {
-        "2xs": ["0.6875rem", { lineHeight: "1.2" }],
+        "2xs": ["1rem", { lineHeight: "1.2" }],
+        xs: ["1.0625rem", { lineHeight: "1.25" }],
+        sm: ["1.1875rem", { lineHeight: "1.3" }],
+        base: ["1.25rem", { lineHeight: "1.3" }],
+        lg: ["1.375rem", { lineHeight: "1.3" }],
+        xl: ["1.5rem", { lineHeight: "1.25" }],
+        "2xl": ["1.75rem", { lineHeight: "1.2" }],
+        "3xl": ["2rem", { lineHeight: "1.2" }],
+        "4xl": ["2.25rem", { lineHeight: "1.15" }],
       },
-      borderRadius: {
-        "2xl": "12px",
-        "3xl": "16px",
+      borderColor: ({ theme }) => ({
+        ...(theme("colors") as Record<string, string>),
+        DEFAULT: palette.pixel,
+      }),
+      transitionDuration: { DEFAULT: "100ms" },
+      transitionTimingFunction: { DEFAULT: "linear" },
+      backgroundImage: {
+        "dot-grid":
+          "radial-gradient(rgba(219, 201, 249, 0.05) 1px, transparent 1px)",
       },
-      boxShadow: {
-        // Subtle card shadows
-        card:  "0 1px 3px rgba(0,0,0,0.5), 0 0 0 1px rgba(28,35,51,0.6)",
-        "card-hover": "0 4px 12px rgba(0,0,0,0.6), 0 0 0 1px rgba(35,134,54,0.3)",
-        // Accent glows
-        "glow-sm": "0 0 12px -3px rgba(35,134,54,0.4)",
-        "glow":    "0 0 24px -6px rgba(35,134,54,0.5)",
-        "glow-teal": "0 0 20px -5px rgba(20,184,166,0.4)",
-        // Elevation
-        "z1": "0 1px 2px rgba(0,0,0,0.6)",
-        "z2": "0 2px 8px rgba(0,0,0,0.5)",
-        "z3": "0 8px 24px rgba(0,0,0,0.4)",
-        "z4": "0 16px 48px rgba(0,0,0,0.5)",
-      },
-      keyframes: {
-        "fade-in": {
-          from: { opacity: "0", transform: "translateY(6px)" },
-          to:   { opacity: "1", transform: "translateY(0)" },
-        },
-        "slide-in-right": {
-          from: { opacity: "0", transform: "translateX(12px)" },
-          to:   { opacity: "1", transform: "translateX(0)" },
-        },
-        "scale-in": {
-          from: { opacity: "0", transform: "scale(0.96)" },
-          to:   { opacity: "1", transform: "scale(1)" },
-        },
-        "ping-slow": {
-          "0%, 100%": { transform: "scale(1)", opacity: "0.8" },
-          "50%": { transform: "scale(1.4)", opacity: "0" },
-        },
-      },
-      animation: {
-        "fade-in":       "fade-in 0.25s ease forwards",
-        "slide-in-right":"slide-in-right 0.2s ease forwards",
-        "scale-in":      "scale-in 0.15s ease forwards",
-        "ping-slow":     "ping-slow 2s cubic-bezier(0,0,0.2,1) infinite",
+      backgroundSize: {
+        grid: "8px 8px",
       },
     },
   },
