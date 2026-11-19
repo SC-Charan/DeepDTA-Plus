@@ -1,5 +1,6 @@
 import type { Config } from "tailwindcss";
 
+// ── Core palette ────────────────────────────────────────────────────────────
 const palette = {
   page: "#203B6F",
   panel: "#312048",
@@ -9,6 +10,37 @@ const palette = {
   heading: "#DBC9F9",
   body: "#A6BAEE",
 } as const;
+
+// ── Derived neutrals (for depth) ────────────────────────────────────────────
+const neutral = {
+  950: "#0F1A33",
+  900: "#1A2A4F",
+  800: "#2B3A63",
+  700: "#4A5A87",
+} as const;
+
+// ── Shadows (tinted with neutral-950, never pure black) ─────────────────────
+const shadowCard =
+  "0 1px 0 rgba(219, 201, 249, 0.04) inset, 0 8px 24px -12px rgba(15, 26, 51, 0.6)";
+const shadowCardHover =
+  "0 1px 0 rgba(219, 201, 249, 0.06) inset, 0 12px 28px -12px rgba(15, 26, 51, 0.7)";
+const shadowSm = "0 1px 2px 0 rgba(15, 26, 51, 0.35)";
+const shadowMd = "0 4px 12px -4px rgba(15, 26, 51, 0.5)";
+const shadowLg = "0 8px 24px -12px rgba(15, 26, 51, 0.6)";
+const shadowXl = "0 16px 36px -16px rgba(15, 26, 51, 0.7)";
+
+// Legacy alias scales, shared by zinc and slate
+const grey = {
+  100: palette.heading,
+  200: palette.heading,
+  300: palette.body,
+  400: palette.body,
+  500: neutral[700],
+  600: neutral[700],
+  700: palette.secondary,
+  800: palette.panel,
+  900: palette.panel,
+};
 
 const config: Config = {
   darkMode: "class",
@@ -24,49 +56,69 @@ const config: Config = {
       current: "currentColor",
       inherit: "inherit",
 
-            // ── Compatibility aliases ──────────────────────────────────────
-      // Existing pages use these class names; remap them to the palette so
-      // nothing renders in a banned hue. Remove after LLM 5–8 restyle app/.
-      white: palette.heading,
-      black: palette.page,
-      zinc: {
-        100: palette.heading, 200: palette.heading, 300: palette.body,
-        400: palette.body, 500: palette.pixel, 600: palette.pixel,
-        700: palette.secondary, 800: palette.panel, 900: palette.panel,
-      },
-      slate: {
-        100: palette.heading, 200: palette.heading, 300: palette.body,
-        400: palette.body, 500: palette.pixel, 600: palette.pixel,
-        700: palette.secondary, 800: palette.panel, 900: palette.panel,
-      },
-      red:     { 300: palette.accent, 400: palette.accent, 500: palette.accent },
-      green:   { 300: palette.body,  400: palette.body,  500: palette.secondary },
-      emerald: { 300: palette.accent, 400: palette.accent, 500: palette.accent },
-      cyan:    { 300: palette.body,  400: palette.body,  500: palette.secondary },
-      blue:    { 300: palette.body,  400: palette.body,  500: palette.secondary },
-      purple:  { 300: palette.heading, 400: palette.accent, 500: palette.pixel },
-      orange:  { 300: palette.heading, 400: palette.accent, 500: palette.pixel },
-      amber:   { 300: palette.heading, 400: palette.accent, 500: palette.pixel },
-      yellow:  { 400: palette.accent, 500: palette.pixel },
-      // ───────────────────────────────────────────────────────────────
-
-      // Semantic tokens
+      // ── Semantic tokens ──────────────────────────────────────────────────
       page: palette.page, // bg-page
       panel: palette.panel, // bg-panel
       secondary: palette.secondary, // bg-secondary
+      elevated: palette.panel, // bg-elevated
       pixel: palette.pixel, // border-pixel
-      "btn-accent": palette.accent, // bg-btn-accent
-      accent: palette.accent,
+      accent: palette.accent, // ring-accent, text-accent
       heading: palette.heading, // text-heading
       body: palette.body, // text-body
+      muted: neutral[700], // text-muted
 
-      // Binding-status tokens (brightness + fill pattern, never colour alone)
+      // Buttons (bg-btn-accent / bg-btn-secondary; see .btn-* in globals.css)
+      "btn-accent": {
+        DEFAULT: palette.accent,
+        hover: palette.heading,
+        text: palette.panel,
+      },
+      "btn-secondary": {
+        DEFAULT: palette.secondary,
+        hover: neutral[700],
+        text: palette.heading,
+      },
+
+      // Binding-status tokens
       "binding-veryhigh": { DEFAULT: "#DBC9F9", text: "#312048" },
       "binding-high": { DEFAULT: "#BC7EBF", text: "#312048" },
       "binding-moderate": { DEFAULT: "#A6BAEE", text: "#312048" },
       "binding-none": { DEFAULT: "#384F95", text: "#A6BAEE", border: "#8E68A9" },
 
-      // Legacy aliases, remapped onto the palette so existing class names keep resolving
+      // Neutrals. 700–950 are the derived neutrals; 50–600 are legacy aliases.
+      neutral: {
+        50: palette.heading,
+        100: palette.heading,
+        200: palette.heading,
+        300: palette.body,
+        400: palette.body,
+        500: palette.pixel,
+        600: palette.pixel,
+        700: neutral[700],
+        800: neutral[800],
+        900: neutral[900],
+        950: neutral[950],
+      },
+
+      // ── LEGACY ALIASES ───────────────────────────────────────────────────
+      // Existing pages use these class names. Remove once the page restyles
+      // are applied.
+      white: palette.heading,
+      black: neutral[950],
+      zinc: grey,
+      slate: grey,
+      blue: { 300: palette.body, 400: palette.body, 500: palette.secondary },
+      cyan: { 300: palette.body, 400: palette.body, 500: palette.secondary },
+      emerald: { 300: palette.accent, 400: palette.accent, 500: palette.accent },
+      green: { 300: palette.accent, 400: palette.accent, 500: palette.accent },
+      red: { 300: palette.accent, 400: palette.accent, 500: palette.accent },
+      purple: { 300: palette.heading, 400: palette.accent, 500: palette.pixel },
+      orange: { 300: palette.heading, 400: palette.accent, 500: palette.pixel },
+      amber: { 300: palette.heading, 400: palette.accent, 500: palette.pixel },
+      yellow: { 400: palette.accent, 500: palette.pixel },
+
+      // Older semantic names carried over from the pixel config, still mapped
+      // onto the palette so nothing renders off-palette.
       background: palette.page,
       canvas: {
         DEFAULT: palette.page,
@@ -118,95 +170,102 @@ const config: Config = {
         subtle: palette.secondary,
         emphasis: palette.accent,
       },
-      neutral: {
-        50: palette.heading,
-        100: palette.heading,
-        200: palette.heading,
-        300: palette.body,
-        400: palette.body,
-        500: palette.pixel,
-        600: palette.pixel,
-        700: palette.secondary,
-        800: palette.secondary,
-        900: palette.panel,
-        950: palette.page,
-      },
     },
 
-    // border-radius: 0 everywhere, no exceptions
     borderRadius: {
       none: "0",
-      sm: "0",
-      DEFAULT: "0",
-      md: "0",
-      lg: "0",
-      xl: "0",
-      "2xl": "0",
-      "3xl": "0",
-      full: "0",
+      sm: "6px",
+      DEFAULT: "8px",
+      md: "8px",
+      lg: "12px",
+      xl: "16px",
+      "2xl": "16px",
+      "3xl": "16px",
+      full: "9999px",
     },
 
-    // Inset bevels only. No outer shadows, glows, blur or spread.
+    // Soft outer shadows plus a 1px top highlight. No bevels, no glow.
     boxShadow: {
       none: "none",
-      DEFAULT: "inset 2px 2px 0 0 #384F95, inset -2px -2px 0 0 #203B6F",
-      bevel: "inset 2px 2px 0 0 #384F95, inset -2px -2px 0 0 #203B6F",
-      "bevel-secondary": "inset 2px 2px 0 0 #A6BAEE, inset -2px -2px 0 0 #312048",
-      "bevel-sunken": "inset 2px 2px 0 0 #312048, inset -2px -2px 0 0 #384F95",
-      "bevel-accent": "inset 2px 2px 0 0 #DBC9F9, inset -2px -2px 0 0 #8E68A9",
-      "bevel-accent-pressed": "inset 2px 2px 0 0 #8E68A9, inset -2px -2px 0 0 #DBC9F9",
-      // Legacy names
-      card: "inset 2px 2px 0 0 #384F95, inset -2px -2px 0 0 #203B6F",
-      "card-hover": "inset 2px 2px 0 0 #384F95, inset -2px -2px 0 0 #203B6F",
+      sm: shadowSm,
+      DEFAULT: shadowCard,
+      md: shadowMd,
+      lg: shadowLg,
+      xl: shadowXl,
+      "2xl": shadowXl,
+      inner: "none",
+      card: shadowCard,
+      "card-hover": shadowCardHover,
+
+      // Legacy names from the pixel config
+      bevel: shadowCard,
+      "bevel-secondary": shadowCard,
+      "bevel-sunken": "none",
+      "bevel-accent": shadowCard,
+      "bevel-accent-pressed": "none",
       "glow-sm": "none",
       glow: "none",
       "glow-teal": "none",
-      z1: "none",
-      z2: "none",
-      z3: "none",
-      z4: "none",
+      z1: shadowSm,
+      z2: shadowMd,
+      z3: shadowLg,
+      z4: shadowXl,
     },
-
-    // Rings are outer spread shadows, so they are disabled. Focus uses outline.
-    ringWidth: { DEFAULT: "0px", 0: "0px" },
-    dropShadow: {},
-    backdropBlur: {},
-
-    // No animation other than simple state transitions
-    keyframes: {},
-    animation: { none: "none" },
 
     extend: {
       fontFamily: {
-        sans: ["var(--font-body)", "ui-monospace", "Menlo", "Consolas", "monospace"],
-        mono: ["var(--font-body)", "ui-monospace", "Menlo", "Consolas", "monospace"],
-        body: ["var(--font-body)", "ui-monospace", "Menlo", "Consolas", "monospace"],
-        pixel: ["var(--font-pixel)", "ui-monospace", "Menlo", "Consolas", "monospace"],
+        sans: [
+          "var(--font-body)",
+          "ui-sans-serif",
+          "system-ui",
+          "-apple-system",
+          "Segoe UI",
+          "sans-serif",
+        ],
+        body: [
+          "var(--font-body)",
+          "ui-sans-serif",
+          "system-ui",
+          "-apple-system",
+          "Segoe UI",
+          "sans-serif",
+        ],
+        heading: [
+          "var(--font-heading)",
+          "ui-sans-serif",
+          "system-ui",
+          "-apple-system",
+          "Segoe UI",
+          "sans-serif",
+        ],
+        mono: [
+          "var(--font-mono)",
+          "ui-monospace",
+          "SFMono-Regular",
+          "Menlo",
+          "Consolas",
+          "monospace",
+        ],
+        // Legacy: `font-pixel` now resolves to the heading face
+        pixel: [
+          "var(--font-heading)",
+          "ui-sans-serif",
+          "system-ui",
+          "sans-serif",
+        ],
       },
-      // Scaled up so VT323 stays readable and the hierarchy stays correct
-      fontSize: {
-        "2xs": ["1rem", { lineHeight: "1.2" }],
-        xs: ["1.0625rem", { lineHeight: "1.25" }],
-        sm: ["1.1875rem", { lineHeight: "1.3" }],
-        base: ["1.25rem", { lineHeight: "1.3" }],
-        lg: ["1.375rem", { lineHeight: "1.3" }],
-        xl: ["1.5rem", { lineHeight: "1.25" }],
-        "2xl": ["1.75rem", { lineHeight: "1.2" }],
-        "3xl": ["2rem", { lineHeight: "1.2" }],
-        "4xl": ["2.25rem", { lineHeight: "1.15" }],
+
+      // Default border colour (bare `border`, `divide-*`)
+      borderColor: {
+        DEFAULT: neutral[800],
       },
-      borderColor: ({ theme }) => ({
-        ...(theme("colors") as Record<string, string>),
-        DEFAULT: palette.pixel,
-      }),
-      transitionDuration: { DEFAULT: "100ms" },
-      transitionTimingFunction: { DEFAULT: "linear" },
-      backgroundImage: {
-        "dot-grid":
-          "radial-gradient(rgba(219, 201, 249, 0.05) 1px, transparent 1px)",
+
+      // Focus rings: restores ring utilities so focus:ring-2 etc. work
+      ringWidth: {
+        DEFAULT: "3px",
       },
-      backgroundSize: {
-        grid: "8px 8px",
+      ringColor: {
+        DEFAULT: palette.accent,
       },
     },
   },
