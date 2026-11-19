@@ -14,7 +14,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
     const variants: Record<string, string> = {
       primary:
-        "bg-panel hover:bg-secondary text-btn-accent border border-pixel active:scale-[0.98]",
+        "bg-brand-emphasis hover:bg-brand-accent text-white shadow-sm active:scale-[0.98]",
       secondary:
         "bg-surface-elevated hover:bg-surface-overlay text-fg border border-surface-border shadow-sm active:scale-[0.98]",
       outline:
@@ -26,7 +26,6 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       glow:
         "bg-brand-emphasis hover:bg-brand-accent text-white shadow-glow-sm hover:shadow-glow active:scale-[0.98]",
     };
-
     const sizes: Record<string, string> = {
       sm:   "h-7 px-3 text-xs gap-1.5",
       md:   "h-9 px-4 text-sm gap-2",
