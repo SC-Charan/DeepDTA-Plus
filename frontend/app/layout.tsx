@@ -1,17 +1,17 @@
 import type { Metadata, Viewport } from "next";
-import { Space_Grotesk, Inter, JetBrains_Mono } from "next/font/google";
+import { Bricolage_Grotesque, Manrope, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { ProteinBackground } from "@/components/layout/protein-background";
 
-const spaceGrotesk = Space_Grotesk({
+const bricolage = Bricolage_Grotesque({
   subsets: ["latin"],
   variable: "--font-heading",
   display: "swap",
 });
 
-const inter = Inter({
+const manrope = Manrope({
   subsets: ["latin"],
   variable: "--font-body",
   display: "swap",
@@ -40,7 +40,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang="en"
-      className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrains.variable}`}
+      className={`${bricolage.variable} ${manrope.variable} ${jetbrains.variable}`}
     >
       <body className="flex h-screen overflow-hidden bg-page text-body antialiased font-body">
         <ProteinBackground />
