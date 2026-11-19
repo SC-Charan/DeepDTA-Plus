@@ -10,7 +10,7 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = "primary", size = "md", isLoading, children, disabled, ...props }, ref) => {
     const base =
-      "inline-flex items-center justify-center font-medium transition-all duration-150 select-none disabled:opacity-40 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent/50 focus-visible:ring-offset-1 focus-visible:ring-offset-canvas-subtle rounded-md whitespace-nowrap";
+      "inline-flex items-center justify-center font-medium transition-all duration-150 select-none disabled:opacity-40 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-btn-accent/50 focus-visible:ring-offset-1 focus-visible:ring-offset-page rounded-md whitespace-nowrap";
 
     const variants: Record<string, string> = {
       primary:
@@ -26,6 +26,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       glow:
         "bg-btn-accent hover:opacity-90 text-panel font-semibold",
     };
+
     const sizes: Record<string, string> = {
       sm:   "h-7 px-3 text-xs gap-1.5",
       md:   "h-9 px-4 text-sm gap-2",
@@ -60,4 +61,5 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     );
   }
 );
+
 Button.displayName = "Button";
