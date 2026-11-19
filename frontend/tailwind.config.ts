@@ -24,6 +24,32 @@ const config: Config = {
       current: "currentColor",
       inherit: "inherit",
 
+            // ── Compatibility aliases ──────────────────────────────────────
+      // Existing pages use these class names; remap them to the palette so
+      // nothing renders in a banned hue. Remove after LLM 5–8 restyle app/.
+      white: palette.heading,
+      black: palette.page,
+      zinc: {
+        100: palette.heading, 200: palette.heading, 300: palette.body,
+        400: palette.body, 500: palette.pixel, 600: palette.pixel,
+        700: palette.secondary, 800: palette.panel, 900: palette.panel,
+      },
+      slate: {
+        100: palette.heading, 200: palette.heading, 300: palette.body,
+        400: palette.body, 500: palette.pixel, 600: palette.pixel,
+        700: palette.secondary, 800: palette.panel, 900: palette.panel,
+      },
+      red:     { 300: palette.accent, 400: palette.accent, 500: palette.accent },
+      green:   { 300: palette.body,  400: palette.body,  500: palette.secondary },
+      emerald: { 300: palette.accent, 400: palette.accent, 500: palette.accent },
+      cyan:    { 300: palette.body,  400: palette.body,  500: palette.secondary },
+      blue:    { 300: palette.body,  400: palette.body,  500: palette.secondary },
+      purple:  { 300: palette.heading, 400: palette.accent, 500: palette.pixel },
+      orange:  { 300: palette.heading, 400: palette.accent, 500: palette.pixel },
+      amber:   { 300: palette.heading, 400: palette.accent, 500: palette.pixel },
+      yellow:  { 400: palette.accent, 500: palette.pixel },
+      // ───────────────────────────────────────────────────────────────
+
       // Semantic tokens
       page: palette.page, // bg-page
       panel: palette.panel, // bg-panel
