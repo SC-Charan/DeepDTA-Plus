@@ -3,6 +3,7 @@ import { Space_Grotesk, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
+import { ProteinBackground } from "@/components/layout/protein-background";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -41,7 +42,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       lang="en"
       className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrains.variable}`}
     >
-      <body className="flex h-screen overflow-hidden bg-page text-body antialiased">
+      <body className="flex h-screen overflow-hidden bg-page text-body antialiased font-body">
+        <ProteinBackground />
         <Sidebar />
         <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
           <Header />
