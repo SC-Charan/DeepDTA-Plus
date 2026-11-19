@@ -14,17 +14,17 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
     const variants: Record<string, string> = {
       primary:
-        "bg-brand-emphasis hover:bg-brand-accent text-white shadow-sm active:scale-[0.98]",
+        "bg-btn-accent hover:opacity-90 text-panel font-semibold",
       secondary:
-        "bg-surface-elevated hover:bg-surface-overlay text-fg border border-surface-border shadow-sm active:scale-[0.98]",
+        "bg-secondary hover:bg-pixel text-heading border border-pixel",
       outline:
-        "border border-surface-border hover:border-brand-emphasis/60 hover:bg-brand-accent/8 text-fg-muted hover:text-fg",
+        "border border-pixel hover:bg-secondary/60 text-body hover:text-heading",
       ghost:
-        "text-fg-muted hover:text-fg hover:bg-surface-elevated",
+        "text-body hover:text-heading hover:bg-secondary/40",
       danger:
-        "bg-danger-subtle hover:bg-danger-muted/20 text-danger border border-danger-muted/40",
+        "bg-accent/20 hover:bg-accent/30 text-accent border border-accent/50",
       glow:
-        "bg-brand-emphasis hover:bg-brand-accent text-white shadow-glow-sm hover:shadow-glow active:scale-[0.98]",
+        "bg-btn-accent hover:opacity-90 text-panel font-semibold",
     };
     const sizes: Record<string, string> = {
       sm:   "h-7 px-3 text-xs gap-1.5",
