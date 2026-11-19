@@ -11,26 +11,12 @@ type Strand = {
   lineWidth: number;
 };
 
-type Residue = {
-  x: number;
-  y: number;
-  dx: number;
-  dy: number;
-  label: string;
-};
-
-const RESIDUES = [
-  "ALA", "GLY", "LEU", "VAL", "SER", "THR", "LYS", "ARG",
-  "ASP", "GLU", "PHE", "TYR", "TRP", "PRO",
-];
-
 const STRAND_COLORS = ["#BC7EBF", "#384F95", "#8E68A9"];
 
 export function ProteinBackground() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rafRef = useRef<number | null>(null);
   const strandsRef = useRef<Strand[]>([]);
-  const residuesRef = useRef<Residue[]>([]);
   const sizeRef = useRef({ w: 0, h: 0 });
 
   useEffect(() => {
@@ -80,18 +66,6 @@ export function ProteinBackground() {
         });
       }
       strandsRef.current = strands;
-
-      const residues: Residue[] = [];
-      for (let i = 0; i < 30; i++) {
-        residues.push({
-          x: Math.random() * w,
-          y: Math.random() * h,
-          dx: (Math.random() - 0.5) * 0.3,
-          dy: (Math.random() - 0.5) * 0.2,
-          label: RESIDUES[Math.floor(Math.random() * RESIDUES.length)],
-        });
-      }
-      residuesRef.current = residues;
     };
 
     const draw = () => {
@@ -123,26 +97,32 @@ export function ProteinBackground() {
         ctx.stroke();
       }
 
-      ctx.font = '11px "JetBrains Mono", monospace';
-      ctx.fillStyle = "#A6BAEE";
-      ctx.globalAlpha = 0.1;
-      for (const r of residuesRef.current) {
-        r.x += r.dx;
-        r.y += r.dy;
-        if (r.x < -40) r.x = w + 40;
-        if (r.x > w + 40) r.x = -40;
-        if (r.y < -20) r.y = h + 20;
-        if (r.y > h + 20) r.y = -20;
-        ctx.fillText(r.label, r.x, r.y);
-      }
-
       ctx.globalAlpha = 1;
       rafRef.current = requestAnimationFrame(draw);
     };
 
+    const drawOnce = () => {
+      const { w, h } = sizeRef.current;
+      ctx.clearRect(0, 0, w, h);
+      for (const s of strandsRef.current) {
+        ctx.beginPath();
+        ctx.moveTo(s.points[0].x, s.points[0].y);
+        for (let i = 1; i < s.points.length - 2; i++) {
+          const midX = (s.points[i].x + s.points[i + 1].x) / 2;
+          const midY = (s.points[i].y + s.points[i + 1].y) / 2;
+          ctx.quadraticCurveTo(s.points[i].x, s.points[i].y, midX, midY);
+        }
+        ctx.strokeStyle = s.color;
+        ctx.globalAlpha = 0.08;
+        ctx.lineWidth = s.lineWidth;
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    };
+
     resize();
     if (reducedMotion) {
-      drawOnce(ctx, sizeRef.current.w, sizeRef.current.h);
+      drawOnce();
     } else {
       rafRef.current = requestAnimationFrame(draw);
     }
@@ -187,24 +167,4 @@ export function ProteinBackground() {
       }}
     />
   );
-}
-
-function drawOnce(
-  ctx: CanvasRenderingContext2D,
-  w: number,
-  h: number
-) {
-  ctx.clearRect(0, 0, w, h);
-  ctx.font = '11px "JetBrains Mono", monospace';
-  ctx.fillStyle = "#A6BAEE";
-  ctx.globalAlpha = 0.1;
-  const labels = ["ALA", "GLY", "LEU", "VAL", "SER", "THR"];
-  for (let i = 0; i < 20; i++) {
-    ctx.fillText(
-      labels[i % labels.length],
-      Math.random() * w,
-      Math.random() * h
-    );
-  }
-  ctx.globalAlpha = 1;
 }
