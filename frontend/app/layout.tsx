@@ -3,7 +3,6 @@ import { Space_Grotesk, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
-import { ProteinBackground } from "@/components/layout/protein-background";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -17,7 +16,7 @@ const inter = Inter({
   display: "swap",
 });
 
-const jetbrainsMono = JetBrains_Mono({
+const jetbrains = JetBrains_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
   display: "swap",
@@ -40,9 +39,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang="en"
-      className={`dark ${spaceGrotesk.variable} ${inter.variable} ${jetbrainsMono.variable}`}
+      className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrains.variable}`}
     >
-      <body className="flex h-screen overflow-hidden bg-page font-sans text-body antialiased">
+      <body className="flex h-screen overflow-hidden bg-page text-body antialiased">
         <Sidebar />
         <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
           <Header />
