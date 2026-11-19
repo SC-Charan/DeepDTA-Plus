@@ -17,24 +17,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-
-interface PubChemCompound {
-  cid: number;
-  iupacName: string;
-  molecularFormula: string;
-  molecularWeight: number;
-  canonicalSMILES: string;
-  isomericSMILES: string;
-  inchiKey: string;
-  xlogp?: number;
-  hbondDonorCount?: number;
-  hbondAcceptorCount?: number;
-  rotatableBondCount?: number;
-  heavyAtomCount?: number;
-  complexity?: number;
-  synonyms: string[];
-  description?: string;
-}
+import {
+  CompoundNotFoundError,
+  fetchPubChemData,
+  fetchSuggestions,
+  type PubChemCompound,
+} from "@/lib/pubchem";
 
 const QUICK_SEARCHES = [
   "Paracetamol",
@@ -47,56 +35,13 @@ const QUICK_SEARCHES = [
   "Gefitinib",
 ];
 
-async function fetchPubChemData(name: string): Promise<PubChemCompound> {
-  // Search for CID
-  const cidRes = await fetch(
-    `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/${encodeURIComponent(name)}/cids/JSON`
-  );
-  if (!cidRes.ok) throw new Error(`Compound "${name}" not found in PubChem`);
-  const cidData = await cidRes.json();
-  const cid = cidData.IdentifierList?.CID?.[0];
-  if (!cid) throw new Error(`No CID found for "${name}"`);
-
-  // Fetch properties
-  const propRes = await fetch(
-    `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/${cid}/property/IUPACName,MolecularFormula,MolecularWeight,CanonicalSMILES,IsomericSMILES,InChIKey,XLogP,HBondDonorCount,HBondAcceptorCount,RotatableBondCount,HeavyAtomCount,Complexity/JSON`
-  );
-  const propData = await propRes.json();
-  const props = propData.PropertyTable?.Properties?.[0] ?? {};
-
-  // Fetch synonyms
-  let synonyms: string[] = [];
-  try {
-    const synRes = await fetch(
-      `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/${cid}/synonyms/JSON`
-    );
-    const synData = await synRes.json();
-    synonyms = synData.InformationList?.Information?.[0]?.Synonym?.slice(0, 8) ?? [];
-  } catch {}
-
-  return {
-    cid,
-    iupacName: props.IUPACName ?? "N/A",
-    molecularFormula: props.MolecularFormula ?? "N/A",
-    molecularWeight: props.MolecularWeight ?? 0,
-    canonicalSMILES: props.CanonicalSMILES ?? "",
-    isomericSMILES: props.IsomericSMILES ?? "",
-    inchiKey: props.InChIKey ?? "N/A",
-    xlogp: props.XLogP,
-    hbondDonorCount: props.HBondDonorCount,
-    hbondAcceptorCount: props.HBondAcceptorCount,
-    rotatableBondCount: props.RotatableBondCount,
-    heavyAtomCount: props.HeavyAtomCount,
-    complexity: props.Complexity,
-    synonyms,
-  };
-}
-
 export default function CompoundSearchPage() {
   const [query, setQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [compound, setCompound] = useState<PubChemCompound | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [notFound, setNotFound] = useState<string | null>(null);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
   const [copiedSmiles, setCopiedSmiles] = useState(false);
 
   const handleSearch = async (name?: string) => {
@@ -104,12 +49,20 @@ export default function CompoundSearchPage() {
     if (!q) return;
     setIsLoading(true);
     setError(null);
+    setNotFound(null);
+    setSuggestions([]);
     setCompound(null);
     try {
       const data = await fetchPubChemData(q);
       setCompound(data);
     } catch (err: any) {
-      setError(err?.message ?? "Failed to fetch compound data.");
+      if (err instanceof CompoundNotFoundError) {
+        // Compound does not exist (or is misspelled): say so and offer close matches
+        setNotFound(q);
+        setSuggestions(await fetchSuggestions(q));
+      } else {
+        setError(err?.message ?? "Failed to fetch compound data.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -176,11 +129,37 @@ export default function CompoundSearchPage() {
         </CardContent>
       </Card>
 
-      {/* Error */}
+      {/* Compound not found (typo / does not exist) */}
+      {notFound && !isLoading && (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 space-y-2">
+          <div className="flex items-center gap-2 text-xs text-amber-300">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span>
+              <strong>&quot;{notFound}&quot;</strong> doesn&apos;t exist in PubChem. Check the spelling and try again.
+            </span>
+          </div>
+          {suggestions.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 pl-6">
+              <span className="text-xs text-zinc-400">Did you mean:</span>
+              {suggestions.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => { setQuery(s); handleSearch(s); }}
+                  className="px-2.5 py-1 rounded-lg text-xs border bg-surface-elevated text-zinc-200 border-surface-border hover:border-brand-500/40 hover:text-white transition-all"
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Network / server error */}
       {error && (
         <div className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-400">
           <AlertCircle className="h-4 w-4 shrink-0" />
-          <span>{error}. Note: PubChem lookup requires internet access — make sure you&apos;re connected.</span>
+          <span>{error}. Could not reach PubChem — check your internet connection and try again.</span>
         </div>
       )}
 
@@ -305,7 +284,7 @@ export default function CompoundSearchPage() {
       )}
 
       {/* Empty state */}
-      {!compound && !isLoading && !error && (
+      {!compound && !isLoading && !error && !notFound && (
         <Card className="border-dashed border-surface-border flex flex-col items-center justify-center p-14 text-center min-h-[300px]">
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-surface-elevated/80 border border-surface-border text-brand-400 mb-4">
             <Search className="h-7 w-7" />
