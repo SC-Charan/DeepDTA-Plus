@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useState, useEffect, Suspense, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   FlaskConical,
@@ -13,11 +13,12 @@ import {
   Bookmark,
   RefreshCw,
   Dna,
-  TrendingUp,
   Activity,
-  Layers,
-  ChevronRight,
+  Search,
+  Loader2,
   ShieldCheck,
+  ChevronDown,
+  Info,
 } from "lucide-react";
 import {
   BarChart,
@@ -27,7 +28,6 @@ import {
   Tooltip,
   ResponsiveContainer,
   Cell,
-  ReferenceLine,
 } from "recharts";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
@@ -46,64 +46,184 @@ import {
   validateProteinSequence,
   exportToJson,
 } from "@/lib/utils";
+import { fetchPubChemData, fetchSuggestions, PubChemCompound } from "@/lib/pubchem";
+import { fetchUniProtProtein, fetchProteinSuggestions, UniProtProtein } from "@/lib/uniprot";
 
 function PredictorStudioContent() {
   const searchParams = useSearchParams();
   const urlSmiles = searchParams.get("smiles") ?? "";
   const urlName = searchParams.get("name") ?? "";
 
-  const [selectedCompoundPreset, setSelectedCompoundPreset] = useState<string>(urlSmiles ? "" : "Dasatinib");
+  // Drug State
   const [compoundName, setCompoundName] = useState<string>(urlName || "Dasatinib");
   const [smiles, setSmiles] = useState<string>(urlSmiles || SAMPLE_COMPOUNDS[0].smiles);
+  const [cid, setCid] = useState<number | undefined>(undefined);
+  const [molecularFormula, setMolecularFormula] = useState<string | undefined>(SAMPLE_COMPOUNDS[0].formula);
+  const [molecularWeight, setMolecularWeight] = useState<number | undefined>(SAMPLE_COMPOUNDS[0].weight);
 
-  // Sync when URL params change (e.g. from PubChem compound search)
-  useEffect(() => {
-    if (urlSmiles) {
-      setSmiles(urlSmiles);
-      setSelectedCompoundPreset("");
-    }
-    if (urlName) setCompoundName(urlName);
-  }, [urlSmiles, urlName]);
+  // PubChem Lookup State
+  const [isSearchingPubChem, setIsSearchingPubChem] = useState<boolean>(false);
+  const [pubchemStatus, setPubchemStatus] = useState<string | null>(null);
+  const [drugSuggestions, setDrugSuggestions] = useState<string[]>([]);
+  const [showDrugSuggestions, setShowDrugSuggestions] = useState<boolean>(false);
 
-  const [selectedProteinPreset, setSelectedProteinPreset] = useState<string>("ABL1");
-  const [targetName, setTargetName] = useState<string>("Tyrosine-protein kinase ABL1");
+  // Target Protein State
+  const [targetName, setTargetName] = useState<string>("ABL1 (Tyrosine-protein kinase ABL1)");
   const [proteinSeq, setProteinSeq] = useState<string>(SAMPLE_PROTEINS[0].sequence);
+  const [uniprotAcc, setUniprotAcc] = useState<string>(SAMPLE_PROTEINS[0].uniprot);
 
+  // UniProt Lookup State
+  const [isSearchingUniProt, setIsSearchingUniProt] = useState<boolean>(false);
+  const [uniprotStatus, setUniprotStatus] = useState<string | null>(null);
+  const [proteinSuggestions, setProteinSuggestions] = useState<Array<{ gene: string; name: string; accession: string }>>([]);
+  const [showProteinSuggestions, setShowProteinSuggestions] = useState<boolean>(false);
+
+  // Workbench view toggle: "drug" vs "protein" tabs to save vertical space
+  const [activeWorkbenchTab, setActiveWorkbenchTab] = useState<"drug" | "protein">("drug");
+
+  // Inference & UI state
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [result, setResult] = useState<PredictionResult | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [copySuccess, setCopySuccess] = useState<boolean>(false);
   const [savedSuccess, setSavedSuccess] = useState<boolean>(false);
 
+  // Debounced Drug Suggestions
+  const drugTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const handleDrugNameChange = (val: string) => {
+    setCompoundName(val);
+    setPubchemStatus(null);
+    if (drugTimerRef.current) clearTimeout(drugTimerRef.current);
+    if (val.trim().length >= 3) {
+      drugTimerRef.current = setTimeout(async () => {
+        const suggs = await fetchSuggestions(val.trim(), 5);
+        setDrugSuggestions(suggs);
+        setShowDrugSuggestions(suggs.length > 0);
+      }, 350);
+    } else {
+      setDrugSuggestions([]);
+      setShowDrugSuggestions(false);
+    }
+  };
+
+  // Perform PubChem Drug Lookup
+  const handleLookupPubChem = async (queryToUse?: string) => {
+    const q = (queryToUse || compoundName).trim();
+    if (!q) return;
+
+    setIsSearchingPubChem(true);
+    setPubchemStatus(null);
+    setShowDrugSuggestions(false);
+
+    try {
+      const data: PubChemCompound = await fetchPubChemData(q);
+      setCompoundName(data.iupacName && data.iupacName !== "N/A" ? q : q);
+      setSmiles(data.canonicalSMILES || data.isomericSMILES);
+      setCid(data.cid);
+      setMolecularFormula(data.molecularFormula);
+      setMolecularWeight(data.molecularWeight);
+      setPubchemStatus(`Found in PubChem (CID: ${data.cid})`);
+    } catch (err: any) {
+      // Check if it's in our local benchmark presets
+      const local = SAMPLE_COMPOUNDS.find(
+        (c) => c.name.toLowerCase() === q.toLowerCase()
+      );
+      if (local) {
+        setCompoundName(local.name);
+        setSmiles(local.smiles);
+        setMolecularFormula(local.formula);
+        setMolecularWeight(local.weight);
+        setPubchemStatus(`Loaded preset: ${local.name}`);
+      } else {
+        setPubchemStatus(`PubChem: "${q}" not found. You can enter SMILES manually.`);
+      }
+    } finally {
+      setIsSearchingPubChem(false);
+    }
+  };
+
+  // Debounced UniProt Suggestions
+  const proteinTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const handleProteinQueryChange = (val: string) => {
+    setTargetName(val);
+    setUniprotStatus(null);
+    if (proteinTimerRef.current) clearTimeout(proteinTimerRef.current);
+    if (val.trim().length >= 2) {
+      proteinTimerRef.current = setTimeout(async () => {
+        const suggs = await fetchProteinSuggestions(val.trim());
+        setProteinSuggestions(suggs);
+        setShowProteinSuggestions(suggs.length > 0);
+      }, 400);
+    } else {
+      setProteinSuggestions([]);
+      setShowProteinSuggestions(false);
+    }
+  };
+
+  // Perform UniProt Lookup
+  const handleLookupUniProt = async (queryToUse?: string) => {
+    const q = (queryToUse || targetName).trim();
+    if (!q) return;
+
+    setIsSearchingUniProt(true);
+    setUniprotStatus(null);
+    setShowProteinSuggestions(false);
+
+    try {
+      const data: UniProtProtein = await fetchUniProtProtein(q);
+      setTargetName(`${data.gene} (${data.name})`);
+      setProteinSeq(data.sequence);
+      setUniprotAcc(data.accession);
+      setUniprotStatus(`Resolved via UniProt: ${data.accession} (${data.length} aa)`);
+    } catch {
+      // Check local sample targets
+      const local = SAMPLE_PROTEINS.find(
+        (p) =>
+          p.id.toLowerCase() === q.toLowerCase() ||
+          p.name.toLowerCase().includes(q.toLowerCase())
+      );
+      if (local) {
+        setTargetName(`${local.id} (${local.name})`);
+        setProteinSeq(local.sequence);
+        setUniprotAcc(local.uniprot);
+        setUniprotStatus(`Loaded preset target: ${local.id}`);
+      } else {
+        setUniprotStatus(`UniProt: "${q}" not found. You can paste FASTA sequence manually.`);
+      }
+    } finally {
+      setIsSearchingUniProt(false);
+    }
+  };
+
+  // Preset Selection Helpers
+  const handleSelectCompoundPreset = (comp: (typeof SAMPLE_COMPOUNDS)[0]) => {
+    setCompoundName(comp.name);
+    setSmiles(comp.smiles);
+    setMolecularFormula(comp.formula);
+    setMolecularWeight(comp.weight);
+    setCid(undefined);
+    setPubchemStatus(`Preset loaded: ${comp.name}`);
+  };
+
+  const handleSelectProteinPreset = (prot: (typeof SAMPLE_PROTEINS)[0]) => {
+    setTargetName(`${prot.id} (${prot.name})`);
+    setProteinSeq(prot.sequence);
+    setUniprotAcc(prot.uniprot);
+    setUniprotStatus(`Preset loaded: ${prot.id}`);
+  };
+
   // Validation
   const smilesValidation = validateSmiles(smiles);
   const proteinValidation = validateProteinSequence(proteinSeq);
 
-  const handleCompoundPresetChange = (name: string) => {
-    setSelectedCompoundPreset(name);
-    const found = SAMPLE_COMPOUNDS.find((c) => c.name === name);
-    if (found) {
-      setCompoundName(found.name);
-      setSmiles(found.smiles);
-    }
-  };
-
-  const handleProteinPresetChange = (id: string) => {
-    setSelectedProteinPreset(id);
-    const found = SAMPLE_PROTEINS.find((p) => p.id === id);
-    if (found) {
-      setTargetName(found.name);
-      setProteinSeq(found.sequence);
-    }
-  };
-
+  // Run Inference
   const handleRunPrediction = async () => {
     if (!smilesValidation.valid) {
-      setErrorMsg("Please enter a valid SMILES string.");
+      setErrorMsg("Please enter or look up a valid SMILES string.");
       return;
     }
     if (!proteinValidation.valid) {
-      setErrorMsg("Please enter a valid amino acid sequence.");
+      setErrorMsg("Please enter or look up a valid amino acid sequence.");
       return;
     }
 
@@ -149,16 +269,16 @@ function PredictorStudioContent() {
   const spectrumPercent = ((currentPkd - pkdMin) / (pkdMax - pkdMin)) * 100;
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
-      {/* Studio Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-surface-border">
+    <div className="space-y-4 animate-in fade-in duration-300">
+      {/* Studio Header (Compact) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-surface-border">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-            <FlaskConical className="h-6 w-6 text-brand-400" />
-            Predictor Studio
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+            <FlaskConical className="h-5 w-5 text-brand-400" />
+            Binding Affinity Predictor Studio
           </h1>
-          <p className="text-xs text-zinc-400 mt-1">
-            Compute binding affinity ($pK_d$) and equilibrium dissociation ($K_d$) with calibrated ensemble uncertainty.
+          <p className="text-xs text-zinc-400 mt-0.5">
+            Auto-fetch SMILES from PubChem &amp; FASTA sequences from UniProt, then run deep ensemble affinity inference.
           </p>
         </div>
 
@@ -167,10 +287,10 @@ function PredictorStudioContent() {
             variant="outline"
             size="sm"
             onClick={() => {
-              handleCompoundPresetChange("Dasatinib");
-              handleProteinPresetChange("ABL1");
+              handleSelectCompoundPreset(SAMPLE_COMPOUNDS[0]);
+              handleSelectProteinPreset(SAMPLE_PROTEINS[0]);
             }}
-            className="text-xs"
+            className="text-xs h-8"
           >
             <RefreshCw className="h-3 w-3 mr-1" />
             Reset Defaults
@@ -179,183 +299,305 @@ function PredictorStudioContent() {
       </div>
 
       {errorMsg && (
-        <div className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-400">
+        <div className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 p-2.5 text-xs text-red-400">
           <AlertCircle className="h-4 w-4 shrink-0" />
           <span>{errorMsg}</span>
         </div>
       )}
 
-      {/* Main Two-Column Studio Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Column: Input Workbench (5 cols on lg) */}
-        <div className="lg:col-span-5 space-y-6">
-          {/* Ligand Input Card */}
-          <Card className="border-surface-border">
-            <CardHeader className="pb-3">
+      {/* Main Studio Grid (Side-by-Side to eliminate excessive scrolling) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        {/* LEFT COLUMN: Input Workbench (5 cols on lg) */}
+        <div className="lg:col-span-5 space-y-3">
+          <Card className="border-surface-border bg-surface-card">
+            <CardHeader className="pb-2 pt-3 px-4">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-brand-400" />
-                  Ligand Molecule Input
-                </CardTitle>
-                <span className="text-[10px] font-mono text-zinc-400">SMILES Representation</span>
+                {/* Workbench Tabs: Drug vs Target */}
+                <div className="flex rounded-lg bg-surface-elevated p-1 border border-surface-border">
+                  <button
+                    onClick={() => setActiveWorkbenchTab("drug")}
+                    className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold transition-all ${
+                      activeWorkbenchTab === "drug"
+                        ? "bg-brand-500 text-white shadow-sm"
+                        : "text-zinc-400 hover:text-white"
+                    }`}
+                  >
+                    <Sparkles className="h-3.5 w-3.5" />
+                    1. Drug (PubChem)
+                  </button>
+                  <button
+                    onClick={() => setActiveWorkbenchTab("protein")}
+                    className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold transition-all ${
+                      activeWorkbenchTab === "protein"
+                        ? "bg-teal-500 text-white shadow-sm"
+                        : "text-zinc-400 hover:text-white"
+                    }`}
+                  >
+                    <Dna className="h-3.5 w-3.5" />
+                    2. Target (UniProt)
+                  </button>
+                </div>
+
+                <Badge variant="outline" className="text-[10px] font-mono">
+                  {activeWorkbenchTab === "drug"
+                    ? `${smilesValidation.valid ? "SMILES OK" : "Needs SMILES"}`
+                    : `${proteinValidation.length} aa`}
+                </Badge>
               </div>
-              <CardDescription>
-                Select a benchmark kinase inhibitor or enter custom SMILES.
-              </CardDescription>
             </CardHeader>
 
-            <CardContent className="space-y-4">
-              {/* Presets Select */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-zinc-300">Quick-Select Benchmark Compound:</label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-                  {SAMPLE_COMPOUNDS.slice(0, 8).map((comp) => (
-                    <button
-                      key={comp.name}
-                      onClick={() => handleCompoundPresetChange(comp.name)}
-                      className={`px-2 py-1.5 rounded-lg text-xs font-medium border text-center transition-all truncate ${
-                        selectedCompoundPreset === comp.name
-                          ? "bg-brand-500/20 text-brand-300 border-brand-500/40 shadow-sm"
-                          : "bg-surface-elevated text-zinc-400 border-surface-border hover:text-white"
-                      }`}
-                      title={comp.name}
-                    >
-                      {comp.name}
-                    </button>
-                  ))}
+            <CardContent className="px-4 pb-4 pt-1 space-y-3">
+              {/* TAB 1: DRUG INPUT & PUBCHEM LINK */}
+              {activeWorkbenchTab === "drug" && (
+                <div className="space-y-3 animate-in fade-in duration-200">
+                  {/* PubChem Connected Drug Search */}
+                  <div className="space-y-1 relative">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-zinc-200 flex items-center gap-1.5">
+                        <Search className="h-3 w-3 text-brand-400" />
+                        Drug / Compound Name (PubChem Linked):
+                      </label>
+                      {pubchemStatus && (
+                        <span className="text-[10px] text-brand-400 truncate max-w-[190px]">
+                          {pubchemStatus}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex gap-1.5">
+                      <div className="relative flex-1">
+                        <Input
+                          value={compoundName}
+                          onChange={(e) => handleDrugNameChange(e.target.value)}
+                          onKeyDown={(e) => e.key === "Enter" && handleLookupPubChem()}
+                          placeholder="Type any drug (e.g. Dasatinib, Aspirin, Osimertinib)..."
+                          className="h-8 text-xs font-medium"
+                        />
+                        {/* Auto-suggestions dropdown */}
+                        {showDrugSuggestions && drugSuggestions.length > 0 && (
+                          <div className="absolute left-0 right-0 top-9 z-30 rounded-lg border border-surface-border bg-surface-elevated shadow-xl overflow-hidden">
+                            {drugSuggestions.map((sugg) => (
+                              <button
+                                key={sugg}
+                                onClick={() => {
+                                  setCompoundName(sugg);
+                                  handleLookupPubChem(sugg);
+                                }}
+                                className="w-full text-left px-3 py-1.5 text-xs text-zinc-200 hover:bg-brand-500/20 hover:text-white transition-colors"
+                              >
+                                {sugg}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => handleLookupPubChem()}
+                        disabled={isSearchingPubChem || !compoundName.trim()}
+                        className="h-8 px-2.5 text-xs font-semibold shrink-0 gap-1"
+                      >
+                        {isSearchingPubChem ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Search className="h-3.5 w-3.5" />
+                        )}
+                        Lookup
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Canonical SMILES Field */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-mono text-zinc-400">Canonical SMILES:</label>
+                      <span className={`text-[10px] font-mono ${smilesValidation.valid ? "text-emerald-400" : "text-amber-400"}`}>
+                        {smiles.length} chars {smilesValidation.valid ? "✓ Valid" : "⚠ Empty"}
+                      </span>
+                    </div>
+                    <Textarea
+                      value={smiles}
+                      onChange={(e) => setSmiles(e.target.value)}
+                      placeholder="e.g. CC1=C(C(=CC=C1)Cl)NC(=O)..."
+                      className="h-16 text-[11px] font-mono resize-none leading-relaxed"
+                    />
+                  </div>
+
+                  {/* Quick-Pick Kinase Inhibitor Presets */}
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-zinc-400 uppercase font-mono">Benchmark Presets:</span>
+                    <div className="flex flex-wrap gap-1">
+                      {SAMPLE_COMPOUNDS.slice(0, 6).map((c) => (
+                        <button
+                          key={c.name}
+                          onClick={() => handleSelectCompoundPreset(c)}
+                          className={`px-2 py-0.5 rounded text-[10px] font-medium border transition-colors ${
+                            compoundName.toLowerCase() === c.name.toLowerCase()
+                              ? "bg-brand-500/20 border-brand-500/50 text-brand-300"
+                              : "bg-surface-elevated border-surface-border text-zinc-400 hover:text-white"
+                          }`}
+                        >
+                          {c.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* High-Fidelity 2D Chemical Structure Preview */}
+                  <MolecularStructurePreview
+                    smiles={smiles}
+                    compoundName={compoundName}
+                    cid={cid}
+                    molecularFormula={molecularFormula}
+                    molecularWeight={molecularWeight}
+                  />
                 </div>
-              </div>
+              )}
 
-              {/* Compound Name */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-zinc-300">Compound / Drug Name:</label>
-                <Input
-                  value={compoundName}
-                  onChange={(e) => setCompoundName(e.target.value)}
-                  placeholder="e.g. Dasatinib, Lapatinib, Aspirin"
-                  className="font-sans text-xs"
-                />
-              </div>
+              {/* TAB 2: TARGET PROTEIN INPUT & UNIPROT LINK */}
+              {activeWorkbenchTab === "protein" && (
+                <div className="space-y-3 animate-in fade-in duration-200">
+                  {/* UniProt Connected Target Search */}
+                  <div className="space-y-1 relative">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-zinc-200 flex items-center gap-1.5">
+                        <Search className="h-3 w-3 text-teal-400" />
+                        Target Kinase / Gene (UniProt Linked):
+                      </label>
+                      {uniprotStatus && (
+                        <span className="text-[10px] text-teal-400 truncate max-w-[190px]">
+                          {uniprotStatus}
+                        </span>
+                      )}
+                    </div>
 
-              {/* SMILES String Input */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-medium text-zinc-300">Canonical SMILES:</label>
-                  <span className={`text-[10px] font-mono ${smilesValidation.valid ? "text-emerald-400" : "text-amber-400"}`}>
-                    {smiles.length} chars {smilesValidation.valid ? "✓ Valid" : "⚠ Empty"}
-                  </span>
+                    <div className="flex gap-1.5">
+                      <div className="relative flex-1">
+                        <Input
+                          value={targetName}
+                          onChange={(e) => handleProteinQueryChange(e.target.value)}
+                          onKeyDown={(e) => e.key === "Enter" && handleLookupUniProt()}
+                          placeholder="Type gene or protein (e.g. EGFR, ABL1, BRAF, KIT)..."
+                          className="h-8 text-xs font-medium"
+                        />
+                        {/* Auto-suggestions dropdown */}
+                        {showProteinSuggestions && proteinSuggestions.length > 0 && (
+                          <div className="absolute left-0 right-0 top-9 z-30 rounded-lg border border-surface-border bg-surface-elevated shadow-xl overflow-hidden">
+                            {proteinSuggestions.map((sugg) => (
+                              <button
+                                key={sugg.accession}
+                                onClick={() => {
+                                  setTargetName(`${sugg.gene} (${sugg.name})`);
+                                  handleLookupUniProt(sugg.gene);
+                                }}
+                                className="w-full text-left px-3 py-1.5 text-xs text-zinc-200 hover:bg-teal-500/20 hover:text-white transition-colors flex items-center justify-between"
+                              >
+                                <span>{sugg.gene} — {sugg.name}</span>
+                                <span className="font-mono text-[10px] text-zinc-400">{sugg.accession}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => handleLookupUniProt()}
+                        disabled={isSearchingUniProt || !targetName.trim()}
+                        className="h-8 px-2.5 text-xs font-semibold shrink-0 gap-1"
+                      >
+                        {isSearchingUniProt ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Search className="h-3.5 w-3.5" />
+                        )}
+                        Lookup
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* FASTA Amino Acid Sequence */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-mono text-zinc-400">FASTA Sequence (Amino Acids):</label>
+                      <span className={`text-[10px] font-mono ${proteinValidation.valid ? "text-teal-400" : "text-amber-400"}`}>
+                        {proteinValidation.length} residues {proteinValidation.valid ? "✓ Valid" : "⚠ Empty"}
+                      </span>
+                    </div>
+                    <Textarea
+                      value={proteinSeq}
+                      onChange={(e) => setProteinSeq(e.target.value)}
+                      placeholder="MKWVTFISLLFLFSSAY..."
+                      className="h-28 text-[11px] font-mono uppercase resize-none leading-relaxed"
+                    />
+                  </div>
+
+                  {/* Target Kinase Benchmark Presets */}
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-zinc-400 uppercase font-mono">Reference Targets:</span>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {SAMPLE_PROTEINS.map((p) => (
+                        <button
+                          key={p.id}
+                          onClick={() => handleSelectProteinPreset(p)}
+                          className={`p-2 rounded text-left border transition-all ${
+                            targetName.startsWith(p.id)
+                              ? "bg-teal-500/20 border-teal-500/50 text-teal-300 shadow-sm"
+                              : "bg-surface-elevated border-surface-border text-zinc-400 hover:text-white"
+                          }`}
+                        >
+                          <div className="text-xs font-bold">{p.id}</div>
+                          <div className="text-[9px] text-zinc-500 truncate">{p.uniprot}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Target Summary Card */}
+                  <div className="rounded-lg border border-surface-border bg-surface-elevated/40 p-2.5 text-xs space-y-1">
+                    <div className="flex items-center justify-between text-[11px] text-zinc-400">
+                      <span>UniProt Accession:</span>
+                      <span className="font-mono font-bold text-teal-300">{uniprotAcc || "P00519"}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] text-zinc-400">
+                      <span>Organism:</span>
+                      <span className="text-zinc-200">Homo sapiens</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] text-zinc-400">
+                      <span>Domain Type:</span>
+                      <span className="text-zinc-200">Protein Kinase Catalytic Domain</span>
+                    </div>
+                  </div>
                 </div>
-                <Textarea
-                  value={smiles}
-                  onChange={(e) => {
-                    setSmiles(e.target.value);
-                    setSelectedCompoundPreset("");
-                  }}
-                  placeholder="e.g. CC1=C(C(=CC=C1)Cl)NC(=O)..."
-                  className="h-20 text-xs"
-                />
-              </div>
+              )}
 
-              {/* Live 2D Molecular Structure Preview */}
-              <MolecularStructurePreview
-                smiles={smiles}
-                compoundName={compoundName}
-                className="mt-2"
-              />
+              {/* Primary Action Button */}
+              <Button
+                variant="glow"
+                size="md"
+                className="w-full h-11 text-xs font-bold tracking-wide gap-2 shadow-lg mt-2"
+                onClick={handleRunPrediction}
+                isLoading={isLoading}
+              >
+                <Zap className="h-4 w-4" />
+                {isLoading ? "Featurizing & Computing Ensemble..." : "Run Binding Affinity Inference"}
+              </Button>
             </CardContent>
           </Card>
-
-          {/* Target Protein Input Card */}
-          <Card className="border-surface-border">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                  <Dna className="h-4 w-4 text-teal-400" />
-                  Target Protein Input
-                </CardTitle>
-                <span className="text-[10px] font-mono text-zinc-400">FASTA Sequence</span>
-              </div>
-              <CardDescription>
-                Choose a benchmark kinase target or paste an amino acid sequence.
-              </CardDescription>
-            </CardHeader>
-
-            <CardContent className="space-y-4">
-              {/* Presets Select */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-zinc-300">Benchmark Target Kinase:</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {SAMPLE_PROTEINS.map((prot) => (
-                    <button
-                      key={prot.id}
-                      onClick={() => handleProteinPresetChange(prot.id)}
-                      className={`px-3 py-2 rounded-lg text-xs font-medium border text-left transition-all ${
-                        selectedProteinPreset === prot.id
-                          ? "bg-teal-500/20 text-teal-300 border-teal-500/40 shadow-sm"
-                          : "bg-surface-elevated text-zinc-400 border-surface-border hover:text-white"
-                      }`}
-                    >
-                      <div className="font-bold">{prot.id}</div>
-                      <div className="text-[10px] text-zinc-500 truncate">{prot.uniprot}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Target Name */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-zinc-300">Target Identifier:</label>
-                <Input
-                  value={targetName}
-                  onChange={(e) => setTargetName(e.target.value)}
-                  placeholder="e.g. Tyrosine-protein kinase ABL1"
-                  className="text-xs"
-                />
-              </div>
-
-              {/* Protein Sequence */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-medium text-zinc-300">Amino Acid Sequence:</label>
-                  <span className={`text-[10px] font-mono ${proteinValidation.valid ? "text-teal-400" : "text-amber-400"}`}>
-                    {proteinValidation.length} residues {proteinValidation.valid ? "✓ Valid" : "⚠ Empty"}
-                  </span>
-                </div>
-                <Textarea
-                  value={proteinSeq}
-                  onChange={(e) => {
-                    setProteinSeq(e.target.value);
-                    setSelectedProteinPreset("");
-                  }}
-                  placeholder="MKWVTFISLLFLFSSAY..."
-                  className="h-28 text-xs font-mono uppercase"
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Primary CTA Button */}
-          <Button
-            variant="glow"
-            size="lg"
-            className="w-full h-12 text-sm font-bold tracking-wide gap-2 shadow-lg"
-            onClick={handleRunPrediction}
-            isLoading={isLoading}
-          >
-            <Zap className="h-4 w-4" />
-            {isLoading ? "Featurizing & Computing Ensemble..." : "Run Binding Affinity Inference"}
-          </Button>
         </div>
 
-        {/* Right Column: Results Panel (7 cols on lg) */}
-        <div className="lg:col-span-7 space-y-6">
+        {/* RIGHT COLUMN: Results Dashboard (7 cols on lg, zero dead vertical space) */}
+        <div className="lg:col-span-7 space-y-3">
           {result ? (
-            <div className="space-y-6 animate-in fade-in duration-300">
-              {/* Primary Affinity Verdict Card */}
-              <Card className="border-surface-border relative overflow-hidden bg-gradient-to-br from-surface-card to-[#0A111E]">
-                <div className="absolute right-0 top-0 h-40 w-40 bg-brand-500/10 blur-3xl pointer-events-none" />
+            <div className="space-y-3 animate-in fade-in duration-300">
+              {/* HIGHLIGHTED BINDING AFFINITY STATUS CARD */}
+              <Card className="border-surface-border relative overflow-hidden bg-gradient-to-br from-surface-card to-[#09101D] shadow-xl">
+                <div className="absolute right-0 top-0 h-36 w-36 bg-brand-500/10 blur-3xl pointer-events-none" />
 
-                <CardHeader className="pb-2">
+                <CardHeader className="pb-2 pt-3 px-4">
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <div>
                       <div className="flex items-center gap-2">
@@ -367,19 +609,19 @@ function PredictorStudioContent() {
                           Calibrated Ensemble
                         </span>
                       </div>
-                      <h2 className="text-xl font-bold text-white mt-1">
+                      <h2 className="text-lg font-bold text-white mt-0.5">
                         {result.compound_name || "Compound"} + {result.target_name || "Target"}
                       </h2>
                     </div>
 
-                    {/* Badge */}
+                    {/* PROMINENT BINDING AFFINITY STATUS HIGHLIGHT */}
                     {(() => {
                       const styles = getBindingBadgeStyles(result.binding_level);
                       return (
                         <div
-                          className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${styles.badgeClass} ${styles.glowClass}`}
+                          className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-1 text-xs font-extrabold uppercase tracking-wide ${styles.badgeClass} ${styles.glowClass}`}
                         >
-                          <span className={`h-2 w-2 rounded-full ${styles.dotColor}`} />
+                          <span className={`h-2.5 w-2.5 rounded-full animate-pulse ${styles.dotColor}`} />
                           {result.binding_level}
                         </div>
                       );
@@ -387,14 +629,14 @@ function PredictorStudioContent() {
                   </div>
                 </CardHeader>
 
-                <CardContent className="space-y-5 pt-3">
-                  {/* Metric Trio */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div className="rounded-xl border border-surface-border bg-surface-elevated/80 p-4">
-                      <span className="text-[11px] font-mono text-zinc-400 uppercase">
+                <CardContent className="px-4 pb-4 pt-1 space-y-3">
+                  {/* Primary Metric Trio */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <div className="rounded-xl border border-surface-border bg-surface-elevated/90 p-3">
+                      <span className="text-[10px] font-mono text-zinc-400 uppercase">
                         Predicted Affinity
                       </span>
-                      <div className="text-3xl font-extrabold font-mono text-emerald-400 mt-1">
+                      <div className="text-2xl font-black font-mono text-emerald-400 mt-0.5">
                         {result.pkd.toFixed(3)}
                       </div>
                       <span className="text-[10px] text-zinc-400">
@@ -402,23 +644,23 @@ function PredictorStudioContent() {
                       </span>
                     </div>
 
-                    <div className="rounded-xl border border-surface-border bg-surface-elevated/80 p-4">
-                      <span className="text-[11px] font-mono text-zinc-400 uppercase">
-                        Equilibrium Dissociation
+                    <div className="rounded-xl border border-surface-border bg-surface-elevated/90 p-3">
+                      <span className="text-[10px] font-mono text-zinc-400 uppercase">
+                        Dissociation (K<sub>d</sub>)
                       </span>
-                      <div className="text-3xl font-extrabold font-mono text-teal-300 mt-1">
+                      <div className="text-2xl font-black font-mono text-teal-300 mt-0.5">
                         {formatKd(result.kd_nM)}
                       </div>
                       <span className="text-[10px] text-zinc-400">
-                        Dissociation constant (K<sub>d</sub>)
+                        Equilibrium dissociation
                       </span>
                     </div>
 
-                    <div className="rounded-xl border border-surface-border bg-surface-elevated/80 p-4">
-                      <span className="text-[11px] font-mono text-zinc-400 uppercase">
+                    <div className="rounded-xl border border-surface-border bg-surface-elevated/90 p-3">
+                      <span className="text-[10px] font-mono text-zinc-400 uppercase">
                         Uncertainty Spread
                       </span>
-                      <div className="text-3xl font-extrabold font-mono text-cyan-300 mt-1">
+                      <div className="text-2xl font-black font-mono text-cyan-300 mt-0.5">
                         ±{result.uncertainty.toFixed(3)}
                       </div>
                       <span className="text-[10px] text-zinc-400">
@@ -427,30 +669,28 @@ function PredictorStudioContent() {
                     </div>
                   </div>
 
-                  {/* DYNAMIC AFFINITY SPECTRUM GAUGE */}
-                  <div className="rounded-xl border border-surface-border bg-surface-elevated/40 p-4 space-y-2">
+                  {/* CONTINUOUS AFFINITY SPECTRUM GAUGE */}
+                  <div className="rounded-xl border border-surface-border bg-surface-elevated/40 p-3 space-y-1.5">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="font-medium text-zinc-300 flex items-center gap-1.5">
+                      <span className="font-semibold text-zinc-200 flex items-center gap-1.5">
                         <Activity className="h-3.5 w-3.5 text-brand-400" />
-                        Binding Affinity Spectrum (pK<sub>d</sub>)
+                        Affinity Spectrum Position
                       </span>
-                      <span className="text-[11px] font-mono text-zinc-400">
+                      <span className="text-[10px] font-mono text-zinc-400">
                         95% CI: [{Math.max(4.0, result.pkd - 1.96 * result.uncertainty).toFixed(2)} — {Math.min(11.0, result.pkd + 1.96 * result.uncertainty).toFixed(2)}]
                       </span>
                     </div>
 
-                    {/* Gradient track */}
-                    <div className="relative h-3 w-full rounded-full bg-gradient-to-r from-rose-500/80 via-amber-500/80 via-teal-500/80 to-emerald-400 p-0.5">
-                      {/* Marker pin */}
+                    <div className="relative h-2.5 w-full rounded-full bg-gradient-to-r from-rose-500/80 via-amber-500/80 via-teal-500/80 to-emerald-400 p-0.5">
                       <div
                         className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-none transition-all duration-500"
                         style={{ left: `${spectrumPercent}%` }}
                       >
-                        <div className="h-5 w-2 rounded bg-white shadow-[0_0_8px_rgba(255,255,255,0.9)] border border-black/40" />
+                        <div className="h-4.5 w-2 rounded bg-white shadow-[0_0_8px_rgba(255,255,255,0.9)] border border-black/40" />
                       </div>
                     </div>
 
-                    <div className="flex justify-between text-[10px] text-zinc-400 pt-1 font-mono">
+                    <div className="flex justify-between text-[9px] text-zinc-400 font-mono pt-0.5">
                       <span>4.0 (Weak / &gt;100 µM)</span>
                       <span>7.0 (100 nM)</span>
                       <span>9.0 (1 nM)</span>
@@ -458,161 +698,68 @@ function PredictorStudioContent() {
                     </div>
                   </div>
 
-                  {/* Confidence Index Meter */}
-                  <div className="rounded-xl border border-surface-border bg-surface-elevated/40 p-4 space-y-2">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-medium text-zinc-300 flex items-center gap-1.5">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-brand-400" />
-                        Ensemble Confidence Metric
-                      </span>
-                      <span className="font-mono font-bold text-brand-400">
-                        {(result.confidence_index * 100).toFixed(1)}%
-                      </span>
-                    </div>
-                    <Progress
-                      value={result.confidence_index * 100}
-                      className="h-2"
-                      indicatorColor="bg-gradient-to-r from-teal-500 to-emerald-400"
-                    />
-                    <div className="flex justify-between text-[10px] text-zinc-400 pt-0.5">
-                      <span>High Uncertainty (&gt; 0.5 σ)</span>
-                      <span>Strong Reliability (&lt; 0.2 σ)</span>
-                    </div>
-                  </div>
-
-                  {/* Biological Interpretation summary */}
-                  <div className="rounded-lg bg-brand-500/10 border border-brand-500/20 p-3 text-xs text-zinc-300 leading-relaxed">
-                    <strong className="text-brand-300">Biochemical Verdict:</strong>{" "}
+                  {/* Biochemical Verdict Explanation Callout */}
+                  <div className="rounded-lg bg-brand-500/10 border border-brand-500/20 p-2.5 text-xs text-zinc-300 leading-relaxed">
+                    <strong className="text-brand-300">Biochemical Interpretation:</strong>{" "}
                     {result.binding_explanation}
                   </div>
 
-                  {/* Quick Action Drawer / Buttons */}
+                  {/* Quick Action Drawer */}
                   <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-surface-border/50">
                     <Button
                       variant="secondary"
                       size="sm"
                       onClick={handleSaveToWorkspace}
-                      className="gap-1.5 text-xs"
+                      className="gap-1.5 text-xs h-7"
                     >
-                      <Bookmark className="h-3.5 w-3.5 text-brand-400" />
-                      {savedSuccess ? "Saved to Workspace!" : "Save to Workspace"}
+                      <Bookmark className="h-3 w-3 text-brand-400" />
+                      {savedSuccess ? "Saved!" : "Save"}
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={handleCopyJson}
-                      className="gap-1.5 text-xs"
+                      className="gap-1.5 text-xs h-7"
                     >
-                      <Copy className="h-3.5 w-3.5" />
-                      {copySuccess ? "JSON Copied!" : "Copy Raw JSON"}
+                      <Copy className="h-3 w-3" />
+                      {copySuccess ? "Copied!" : "Copy JSON"}
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={handleExportSummary}
-                      className="gap-1.5 text-xs"
+                      className="gap-1.5 text-xs h-7"
                     >
-                      <Download className="h-3.5 w-3.5" />
-                      Export Summary (.json)
+                      <Download className="h-3 w-3" />
+                      Export (.json)
                     </Button>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Recharts: Benchmark Baselines Comparison */}
+              {/* TARGET RESIDUE BINDING POCKET ATTENTION PROFILE */}
               <Card className="border-surface-border">
-                <CardHeader className="pb-2">
+                <CardHeader className="pb-1 pt-3 px-4">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                      <TrendingUp className="h-4 w-4 text-emerald-400" />
-                      Davis Benchmark Concordance Index (CI)
+                    <CardTitle className="text-xs font-semibold flex items-center gap-1.5">
+                      <Dna className="h-3.5 w-3.5 text-teal-400" />
+                      Predicted Binding Pocket Attention Profile
                     </CardTitle>
-                    <span className="text-[10px] font-mono text-zinc-400">Random Test Split</span>
+                    <span className="text-[10px] font-mono text-zinc-400">Target Focus Weights</span>
                   </div>
-                  <CardDescription>
-                    Performance of our DeepDTA+ ensemble compared to published baselines.
-                  </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="h-[210px] w-full pt-2">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        data={result.baselines}
-                        margin={{ top: 10, right: 10, left: -15, bottom: 25 }}
-                      >
-                        <XAxis
-                          dataKey="model"
-                          tick={{ fill: "#94A3B8", fontSize: 9.5 }}
-                          interval={0}
-                          angle={-15}
-                          textAnchor="end"
-                        />
-                        <YAxis
-                          domain={[0.45, 1.0]}
-                          tick={{ fill: "#94A3B8", fontSize: 10 }}
-                        />
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: "#111622",
-                            borderColor: "#1F293D",
-                            borderRadius: "8px",
-                            fontSize: "11px",
-                            color: "#fff",
-                          }}
-                          formatter={(value: any) => [`CI: ${Number(value).toFixed(4)}`, "Concordance"]}
-                        />
-                        <ReferenceLine y={0.878} stroke="#EF4444" strokeDasharray="3 3" label={{ value: "Paper 0.878", fill: "#EF4444", fontSize: 9 }} />
-                        <Bar dataKey="ci" radius={[4, 4, 0, 0]}>
-                          {result.baselines.map((entry, index) => (
-                            <Cell
-                              key={`cell-${index}`}
-                              fill={
-                                entry.model.includes("Ensemble")
-                                  ? "#10B981"
-                                  : entry.model.includes("GBM")
-                                  ? "#14B8A6"
-                                  : entry.model.includes("CNN")
-                                  ? "#3B82F6"
-                                  : "#475569"
-                              }
-                            />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Recharts: Target Residue Interaction Attention Spectrum */}
-              <Card className="border-surface-border">
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                      <Dna className="h-4 w-4 text-teal-400" />
-                      Predicted Residue Interaction Profile
-                    </CardTitle>
-                    <span className="text-[10px] font-mono text-zinc-400">Binding Pocket Focus</span>
-                  </div>
-                  <CardDescription>
-                    Normalized model attention across key target sequence positions.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-[140px] w-full pt-1">
+                <CardContent className="px-4 pb-3 pt-1">
+                  <div className="h-[120px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={result.residues} margin={{ top: 5, right: 5, left: -25, bottom: 5 }}>
-                        <XAxis
-                          dataKey="pos"
-                          tick={{ fill: "#64748B", fontSize: 9 }}
-                        />
-                        <YAxis domain={[0, 1]} tick={{ fill: "#64748B", fontSize: 9 }} />
+                        <XAxis dataKey="pos" tick={{ fill: "#64748B", fontSize: 8.5 }} />
+                        <YAxis domain={[0, 1]} tick={{ fill: "#64748B", fontSize: 8.5 }} />
                         <Tooltip
                           contentStyle={{
                             backgroundColor: "#111622",
                             borderColor: "#1F293D",
-                            borderRadius: "8px",
-                            fontSize: "11px",
+                            borderRadius: "6px",
+                            fontSize: "10px",
                             color: "#fff",
                           }}
                           formatter={(val: any, name: any, item: any) => [
@@ -622,20 +769,17 @@ function PredictorStudioContent() {
                         />
                         <Bar dataKey="score" radius={[2, 2, 0, 0]}>
                           {result.residues.map((r, idx) => (
-                            <Cell
-                              key={`res-${idx}`}
-                              fill={r.isPocket ? "#10B981" : "#1E293B"}
-                            />
+                            <Cell key={`res-${idx}`} fill={r.isPocket ? "#10B981" : "#1E293B"} />
                           ))}
                         </Bar>
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
-                  <div className="flex items-center justify-between text-[10px] text-zinc-400 pt-2 border-t border-surface-border/40">
-                    <span className="flex items-center gap-1.5">
-                      <span className="h-2 w-2 rounded bg-emerald-400" /> Key Catalytic / Pocket Residues
+                  <div className="flex items-center justify-between text-[10px] text-zinc-400 pt-1 border-t border-surface-border/40">
+                    <span className="flex items-center gap-1">
+                      <span className="h-2 w-2 rounded bg-emerald-400" /> Pocket Residues
                     </span>
-                    <span className="flex items-center gap-1.5">
+                    <span className="flex items-center gap-1">
                       <span className="h-2 w-2 rounded bg-surface-border" /> Scaffolding Residues
                     </span>
                   </div>
@@ -643,23 +787,21 @@ function PredictorStudioContent() {
               </Card>
             </div>
           ) : (
-            /* Empty State Waiting for Prediction */
-            <Card className="border-dashed border-surface-border flex flex-col items-center justify-center p-12 text-center min-h-[500px]">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-surface-elevated/80 border border-surface-border text-brand-400 mb-4 shadow-glow">
-                <FlaskConical className="h-8 w-8" />
+            /* Empty State Waiting for Prediction (Compact, eye-level) */
+            <Card className="border-dashed border-surface-border flex flex-col items-center justify-center p-8 text-center min-h-[420px] bg-surface-card/40">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-surface-elevated/80 border border-surface-border text-brand-400 mb-3 shadow-glow">
+                <FlaskConical className="h-6 w-6" />
               </div>
-              <h3 className="text-base font-bold text-white">Inference Engine Ready</h3>
-              <p className="text-xs text-zinc-400 max-w-sm mt-1 mb-6 leading-relaxed">
-                Configure your ligand molecule and target protein on the left workbench and click{" "}
-                <strong className="text-zinc-200">&quot;Run Binding Affinity Inference&quot;</strong> to compute
-                predictions.
+              <h3 className="text-sm font-bold text-white">Inference Engine Ready</h3>
+              <p className="text-xs text-zinc-400 max-w-xs mt-1 mb-4 leading-relaxed">
+                Type any drug or target on the left to auto-fetch structures from PubChem and UniProt, then run affinity inference.
               </p>
               <Button
                 variant="secondary"
-                size="md"
+                size="sm"
                 onClick={handleRunPrediction}
                 isLoading={isLoading}
-                className="gap-2 text-xs"
+                className="gap-2 text-xs h-8"
               >
                 <Zap className="h-3.5 w-3.5 text-brand-400" />
                 Run Benchmark Pair (Dasatinib + ABL1)
