@@ -24,7 +24,6 @@ const ARCHITECTURE_STEPS = [
     color: "brand",
     steps: [
       { label: "SMILES Text", desc: "Raw canonical SMILES string (max 85 chars, zero-padded)", code: "CC(=O)Nc1ccc(O)cc1" },
-      { label: "RDKit Validation", desc: "RDKit checks the molecule and enriches with chemistry-aware features (MW, XLogP, HBD/HBA)" },
       { label: "Character Encoding", desc: "SMILES characters mapped to integer tokens using a fixed 64-char vocabulary" },
       { label: "Embedding Layer (128-d)", desc: "Each token becomes a 128-dimensional learnable vector" },
       { label: "Conv1D ×3", desc: "3 convolutional layers with 32, 64, 96 filters and kernel size 8 each" },
@@ -66,7 +65,7 @@ const HYPERPARAMS = [
   { key: "Batch size", value: "256" },
   { key: "Epochs", value: "100 (early stopping)" },
   { key: "Framework", value: "PyTorch" },
-  { key: "Chemistry toolkit", value: "RDKit" },
+  { key: "Encoding", value: "Character vocabulary dictionary" },
 ];
 
 export default function ModelViewPage() {
@@ -80,12 +79,12 @@ export default function ModelViewPage() {
             Model Architecture
           </h1>
           <p className="text-xs text-zinc-400 mt-1">
-            Understand the two-branch CNN model built with PyTorch and enhanced by RDKit chemistry features.
+            Understand the two-branch CNN model built with PyTorch and sequence character tokenization.
           </p>
         </div>
         <div className="flex gap-2">
           <Badge variant="brand">PyTorch CNN</Badge>
-          <Badge variant="cyan">RDKit Enhanced</Badge>
+          <Badge variant="cyan">Dual Branch</Badge>
         </div>
       </div>
 
@@ -95,12 +94,12 @@ export default function ModelViewPage() {
         <CardHeader>
           <CardTitle className="text-base text-zinc-100">DeepDTA: Dual-Branch CNN Architecture</CardTitle>
           <CardDescription>
-            Original paper: Öztürk et al., 2018 · Bioinformatics 34(17) · Extended with PyTorch + RDKit in this implementation.
+            Original paper: Öztürk et al., 2018 · Bioinformatics 34(17) · Re-implemented with PyTorch in this implementation.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <p className="text-xs text-zinc-300 leading-relaxed max-w-3xl">
-            DeepDTA uses <strong className="text-white">two independent CNN branches</strong> — one for the drug molecule (SMILES) and one for the target protein (amino acid sequence). Each branch learns its own feature representations independently through convolutional layers, then both are <strong className="text-white">concatenated and fed into shared fully-connected layers</strong> that predict the binding affinity (pKd score). Our implementation uses <strong className="text-brand-300">PyTorch</strong> for model development and <strong className="text-teal-300">RDKit</strong> to validate and enrich molecular inputs.
+            DeepDTA uses <strong className="text-white">two independent CNN branches</strong> — one for the drug molecule (SMILES) and one for the target protein (amino acid sequence). Each branch learns its own feature representations independently through convolutional layers, then both are <strong className="text-white">concatenated and fed into shared fully-connected layers</strong> that predict the binding affinity (pKd score). Our implementation uses <strong className="text-brand-300">PyTorch</strong> for modular model development and deployment.
           </p>
         </CardContent>
       </Card>
@@ -212,11 +211,11 @@ export default function ModelViewPage() {
               </thead>
               <tbody className="divide-y divide-surface-border/50">
                 {[
-                  ["Drug input", "SMILES characters only", "SMILES checked and enriched with RDKit chemical features"],
-                  ["Framework", "Research code (Keras / TensorFlow)", "PyTorch CNN — easier to extend and deploy"],
+                  ["Drug input", "SMILES characters only", "Canonical SMILES character dictionary tokenization"],
+                  ["Framework", "Research code (Keras / TensorFlow)", "PyTorch CNN — modern, modular architecture"],
                   ["Interface", "Research scripts, no user interface", "Full web app: Next.js frontend + FastAPI backend"],
                   ["Extra tools", "None", "PubChem search, molecule view, virtual screening"],
-                  ["Evaluation", "Davis and KIBA benchmarks", "Same datasets + comparison with original on a held-out test set"],
+                  ["Evaluation", "Davis and KIBA benchmarks", "Davis and KIBA benchmarks with cold-entity validation"],
                 ].map(([aspect, original, ours]) => (
                   <tr key={aspect} className="group">
                     <td className="py-2 pr-4 font-semibold text-zinc-300">{aspect}</td>

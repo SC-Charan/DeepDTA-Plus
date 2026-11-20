@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 class DTAEnsemble:
     """
     Ensemble model combining multiple gradient boosting seeds and/or DeepDTA CNN.
-    Tuned on validation data only. Returns point estimate and uncertainty spread.
+    Combines member predictions via uniform averaging. Returns point estimate and uncertainty spread.
     """
 
     def __init__(

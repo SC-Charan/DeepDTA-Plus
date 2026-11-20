@@ -100,7 +100,7 @@ export default function DashboardPage() {
         <div className="relative max-w-2xl space-y-5">
           <div className="flex items-center gap-2 flex-wrap">
             <Badge variant="brand">Research Project · Team G1542</Badge>
-            <Badge variant="muted">PyTorch · RDKit · Next.js</Badge>
+            <Badge variant="muted">PyTorch · Next.js · FastAPI</Badge>
           </div>
 
           <div>
@@ -110,8 +110,8 @@ export default function DashboardPage() {
             <p className="mt-2 text-sm text-fg-muted leading-relaxed max-w-xl">
               Predict how strongly a drug binds to a protein using a dual-branch convolutional neural network
               trained on measured Kd values from the Davis kinase dataset. Built on the{" "}
-              <span className="text-fg">Öztürk et al. 2018</span> paper, extended with{" "}
-              <span className="text-fg">PyTorch</span> and <span className="text-fg">RDKit</span>.
+              <span className="text-fg">Öztürk et al. 2018</span> paper, implemented with{" "}
+              <span className="text-fg">PyTorch</span> and modern web microservices.
             </p>
           </div>
 
@@ -195,9 +195,9 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-surface-border">
           {[
             { n: "1", title: "Enter inputs",       desc: "SMILES string for the drug + amino acid sequence for the protein." },
-            { n: "2", title: "RDKit validation",   desc: "The molecule is validated and enriched with chemistry-aware features." },
-            { n: "3", title: "CNN inference",       desc: "Two Conv1D branches process drug and protein; dense layers predict pKd." },
-            { n: "4", title: "View result",         desc: "Score, Kd in nM, confidence index, and baseline comparison chart." },
+            { n: "2", title: "Sequence encoding",  desc: "Characters mapped to integer tokens with zero-padding." },
+            { n: "3", title: "CNN & GBM inference", desc: "Dual Conv1D branches + similarity models predict pKd." },
+            { n: "4", title: "View result",         desc: "Score, Kd in nM, uncertainty spread, and baseline comparison chart." },
           ].map((step) => (
             <div key={step.n} className="p-5">
               <div className="mb-2 flex h-6 w-6 items-center justify-center rounded-full border border-surface-border text-[11px] font-bold text-fg-muted">

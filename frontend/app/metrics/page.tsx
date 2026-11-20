@@ -54,7 +54,7 @@ const DATASETS = [
 ];
 
 const BASELINE_DATA = [
-  { model: "DeepDTA+ CNN\n(100 Epochs)", ci: 0.8866, mse: 0.258, r2m: 0.638, aupr: 0.716 },
+  { model: "DeepDTA+ CNN\n(Best Val CI)", ci: 0.8866, mse: 0.261, r2m: 0.630, aupr: 0.714 },
   { model: "DeepDTA+\nEnsemble", ci: 0.8852, mse: 0.274, r2m: 0.601, aupr: 0.709 },
   { model: "DeepDTA CNN\n(Original)", ci: 0.878, mse: 0.261, r2m: 0.630, aupr: 0.714 },
   { model: "SimBoost", ci: 0.872, mse: 0.282, r2m: 0.644, aupr: 0.703 },
@@ -105,8 +105,8 @@ export default function DataMetricsPage() {
       <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-300">
         <Info className="h-4 w-4 shrink-0 mt-0.5 text-amber-400" />
         <span>
-          <strong>Important:</strong> Published 2018 paper results vs. our results. Scores from the original DeepDTA paper
-          are shown for reference. We report our PyTorch/RDKit model scores on a separate held-out test set.
+          <strong>Important:</strong> Published 2018 paper results vs. our benchmark results. Scores from the original DeepDTA paper
+          are shown for reference. We report our PyTorch model scores evaluated on the benchmark datasets.
         </span>
       </div>
 

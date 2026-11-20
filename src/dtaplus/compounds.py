@@ -97,7 +97,7 @@ def resolve_compound(name_or_smiles: str) -> tuple[str, str, str | None]:
 
     # Check if query itself looks like a SMILES (contains bonds/rings like =, #, @, numbers)
     # and has characters that match our SMILES character set
-    is_mostly_smiles = any(c in query for c in "()=#123456789") and not (" " in query)
+    is_mostly_smiles = any(c in query for c in "()=#123456789") and (" " not in query)
     if is_mostly_smiles:
         # Check invalid characters
         invalid_chars = [ch for ch in query if ch not in CHARISOSMISET]

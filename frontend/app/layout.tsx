@@ -26,8 +26,8 @@ const jetbrains = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "DeepDTA | Drug-Target Binding Affinity Prediction",
   description:
-    "Predict drug-protein binding affinity (pKd / Kd) using a dual-branch CNN trained on the Davis kinase inhibitor dataset.",
-  keywords: ["DeepDTA", "drug-target affinity", "binding affinity", "SMILES", "bioinformatics"],
+    "Predict drug-protein binding affinity (pKd / Kd) using a dual-branch CNN trained on the Davis kinase inhibitor dataset. Built with PyTorch and Next.js.",
+  keywords: ["DeepDTA", "drug-target affinity", "binding affinity", "SMILES", "bioinformatics", "PyTorch", "Next.js"],
   authors: [{ name: "Team G1542" }],
 };
 
