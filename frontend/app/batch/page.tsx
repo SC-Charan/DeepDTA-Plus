@@ -15,7 +15,20 @@ import {
   ArrowUpDown,
   FileText,
   Info,
+  BarChart2,
+  Trophy,
+  Activity,
+  Flame,
 } from "lucide-react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+} from "recharts";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -30,6 +43,7 @@ export default function BatchScreeningPage() {
   const [targetProtein, setTargetProtein] = useState(SAMPLE_PROTEINS[0]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [processingStage, setProcessingStage] = useState<string>("");
   const [uploadMessage, setUploadMessage] = useState<string | null>(null);
 
   // Filters & Search
@@ -50,7 +64,7 @@ export default function BatchScreeningPage() {
     }));
     setItems(sampleRows);
     setProgress(0);
-    setUploadMessage(`Loaded sample library with ${sampleRows.length} reference drugs.`);
+    setUploadMessage(`Loaded reference library with ${sampleRows.length} benchmark kinase inhibitors.`);
   };
 
   // Robust CSV Parser
@@ -93,7 +107,6 @@ export default function BatchScreeningPage() {
       const parsed: BatchItem[] = [];
 
       for (let i = 1; i < lines.length; i++) {
-        // Simple CSV splitter handling quoted values
         const row = lines[i];
         const parts: string[] = [];
         let inQuotes = false;
@@ -139,7 +152,6 @@ export default function BatchScreeningPage() {
       }
     };
     reader.readAsText(file);
-    // Reset file input so user can re-select
     e.target.value = "";
   };
 
@@ -148,18 +160,27 @@ export default function BatchScreeningPage() {
     if (items.length === 0) return;
     setIsProcessing(true);
     setProgress(15);
+    setProcessingStage("Featurizing SMILES token sequences...");
 
     try {
-      const progressTimer = setInterval(() => {
-        setProgress((prev) => (prev < 90 ? prev + 15 : prev));
+      const stageTimer1 = setTimeout(() => {
+        setProgress(45);
+        setProcessingStage("Running multi-branch ensemble inference...");
       }, 300);
 
+      const stageTimer2 = setTimeout(() => {
+        setProgress(75);
+        setProcessingStage("Computing Kd equilibrium constants & uncertainty...");
+      }, 700);
+
       const processed = await predictBatch(items);
-      clearInterval(progressTimer);
+      clearTimeout(stageTimer1);
+      clearTimeout(stageTimer2);
 
       setProgress(100);
+      setProcessingStage("Screening complete!");
       setItems(processed);
-      setUploadMessage(`Screening complete! Processed ${processed.length} compounds.`);
+      setUploadMessage(`Screening complete! Evaluated ${processed.length} compounds against ${targetProtein.id}.`);
     } catch {
       setUploadMessage("An error occurred during screening.");
     } finally {
@@ -200,7 +221,25 @@ export default function BatchScreeningPage() {
       return sortOrder === "desc" ? valB - valA : valA - valB;
     });
 
-  const completedCount = items.filter((x) => x.status === "completed").length;
+  const completedItems = items.filter((x) => x.status === "completed" && x.pkd !== undefined);
+  const completedCount = completedItems.length;
+
+  // Screening statistics
+  const highBinders = completedItems.filter((x) => (x.pkd ?? 0) >= 8.0);
+  const avgPkd = completedCount > 0
+    ? (completedItems.reduce((acc, x) => acc + (x.pkd ?? 0), 0) / completedCount).toFixed(2)
+    : "—";
+  const topHit = completedItems.length > 0
+    ? [...completedItems].sort((a, b) => (b.pkd ?? 0) - (a.pkd ?? 0))[0]
+    : null;
+
+  // Distribution bins
+  const distributionData = [
+    { bin: "< 6.0 (Weak)", count: completedItems.filter((x) => (x.pkd ?? 0) < 6.0).length, color: "#64748B" },
+    { bin: "6.0 - 7.0 (Moderate)", count: completedItems.filter((x) => (x.pkd ?? 0) >= 6.0 && (x.pkd ?? 0) < 7.0).length, color: "#F59E0B" },
+    { bin: "7.0 - 8.0 (High)", count: completedItems.filter((x) => (x.pkd ?? 0) >= 7.0 && (x.pkd ?? 0) < 8.0).length, color: "#14B8A6" },
+    { bin: "≥ 8.0 (Sub-nM)", count: completedItems.filter((x) => (x.pkd ?? 0) >= 8.0).length, color: "#10B981" },
+  ];
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
@@ -212,7 +251,7 @@ export default function BatchScreeningPage() {
             Batch Virtual Screening Studio
           </h1>
           <p className="text-xs text-zinc-400 mt-1">
-            High-throughput binding affinity screening of compound libraries against kinase targets with uncertainty estimation.
+            High-throughput binding affinity screening of compound libraries against kinase targets with calibrated uncertainty estimation.
           </p>
         </div>
 
@@ -242,7 +281,7 @@ export default function BatchScreeningPage() {
       </div>
 
       {uploadMessage && (
-        <div className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-surface-elevated border border-surface-border text-xs text-zinc-300">
+        <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-surface-elevated border border-surface-border text-xs text-zinc-300">
           <Info className="h-4 w-4 text-teal-400 flex-shrink-0" />
           <span>{uploadMessage}</span>
         </div>
@@ -266,7 +305,7 @@ export default function BatchScreeningPage() {
                   onClick={() => setTargetProtein(prot)}
                   className={`w-full flex items-center justify-between p-2.5 rounded-lg border text-xs transition-all ${
                     targetProtein.id === prot.id
-                      ? "bg-teal-500/15 border-teal-500/40 text-teal-300"
+                      ? "bg-teal-500/15 border-teal-500/40 text-teal-300 shadow-sm"
                       : "bg-surface-elevated/70 border-surface-border text-zinc-400 hover:text-white"
                   }`}
                 >
@@ -288,7 +327,7 @@ export default function BatchScreeningPage() {
               Upload Compound Library CSV
             </CardTitle>
             <CardDescription>
-              Drag & drop a CSV file containing columns: <code>Compound_Name, SMILES</code> (optionally <code>Target_ID, Sequence</code>)
+              Drag &amp; drop a CSV file containing columns: <code>Compound_Name, SMILES</code> (optionally <code>Target_ID, Sequence</code>)
             </CardDescription>
           </CardHeader>
 
@@ -299,7 +338,7 @@ export default function BatchScreeningPage() {
                 Click to browse or drop CSV library here
               </span>
               <span className="text-[10px] text-zinc-400 mt-1">
-                CSV, TSV, or TXT (up to 256 molecules per run)
+                CSV, TSV, or TXT (flexible column header support)
               </span>
               <input
                 type="file"
@@ -319,6 +358,100 @@ export default function BatchScreeningPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* DYNAMIC SCREENING SUMMARY STATS */}
+      {completedCount > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 animate-in fade-in duration-300">
+          <div className="rounded-xl border border-surface-border bg-surface-card p-3.5">
+            <div className="flex items-center justify-between text-zinc-400 text-xs">
+              <span>Screened</span>
+              <Activity className="h-3.5 w-3.5 text-brand-400" />
+            </div>
+            <div className="text-2xl font-bold font-mono text-white mt-1">
+              {completedCount}
+            </div>
+            <div className="text-[10px] text-zinc-400 mt-0.5">molecules evaluated</div>
+          </div>
+
+          <div className="rounded-xl border border-surface-border bg-surface-card p-3.5">
+            <div className="flex items-center justify-between text-zinc-400 text-xs">
+              <span>High Binders</span>
+              <Flame className="h-3.5 w-3.5 text-emerald-400" />
+            </div>
+            <div className="text-2xl font-bold font-mono text-emerald-400 mt-1">
+              {highBinders.length}
+            </div>
+            <div className="text-[10px] text-zinc-400 mt-0.5">pK<sub>d</sub> ≥ 8.0 (Sub-nM)</div>
+          </div>
+
+          <div className="rounded-xl border border-surface-border bg-surface-card p-3.5">
+            <div className="flex items-center justify-between text-zinc-400 text-xs">
+              <span>Mean Affinity</span>
+              <BarChart2 className="h-3.5 w-3.5 text-teal-400" />
+            </div>
+            <div className="text-2xl font-bold font-mono text-teal-300 mt-1">
+              {avgPkd}
+            </div>
+            <div className="text-[10px] text-zinc-400 mt-0.5">average pK<sub>d</sub> score</div>
+          </div>
+
+          <div className="rounded-xl border border-surface-border bg-surface-card p-3.5">
+            <div className="flex items-center justify-between text-zinc-400 text-xs">
+              <span>Top Hit</span>
+              <Trophy className="h-3.5 w-3.5 text-amber-400" />
+            </div>
+            <div className="text-sm font-bold text-amber-300 truncate mt-1">
+              {topHit ? topHit.compound_name : "—"}
+            </div>
+            <div className="text-[10px] font-mono text-zinc-400 mt-0.5">
+              {topHit && topHit.pkd !== undefined ? `pK_d: ${topHit.pkd.toFixed(3)}` : "—"}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DYNAMIC AFFINITY DISTRIBUTION HISTOGRAM */}
+      {completedCount > 1 && (
+        <Card className="border-surface-border">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <BarChart2 className="h-4 w-4 text-emerald-400" />
+                Screened Library Affinity Distribution
+              </CardTitle>
+              <span className="text-[10px] font-mono text-zinc-400">{completedCount} Compounds</span>
+            </div>
+            <CardDescription className="text-xs">
+              Stratification of compounds across binding potency thresholds against {targetProtein.id}.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[140px] w-full pt-1">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={distributionData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+                  <XAxis dataKey="bin" tick={{ fill: "#94A3B8", fontSize: 10 }} />
+                  <YAxis allowDecimals={false} tick={{ fill: "#94A3B8", fontSize: 10 }} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#111622",
+                      borderColor: "#1F293D",
+                      borderRadius: "8px",
+                      fontSize: "11px",
+                      color: "#fff",
+                    }}
+                    formatter={(val: any) => [`${val} compounds`, "Count"]}
+                  />
+                  <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                    {distributionData.map((d, i) => (
+                      <Cell key={i} fill={d.color} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Table & Batch Operations */}
       {items.length > 0 && (
@@ -341,7 +474,7 @@ export default function BatchScreeningPage() {
                   size="sm"
                   onClick={handleRunBatchScreening}
                   isLoading={isProcessing}
-                  className="text-xs font-bold gap-1.5"
+                  className="text-xs font-bold gap-1.5 shadow-md"
                 >
                   <Play className="h-3.5 w-3.5 fill-current" />
                   {isProcessing ? "Processing Batch..." : "Run Batch Screening"}
@@ -363,12 +496,12 @@ export default function BatchScreeningPage() {
 
             {/* Progress bar */}
             {isProcessing && (
-              <div className="pt-3 space-y-1">
+              <div className="pt-3 space-y-1.5">
                 <div className="flex justify-between text-xs font-mono text-zinc-400">
-                  <span>Evaluating molecular features & dual CNN encoding...</span>
-                  <span className="text-brand-400">{progress}%</span>
+                  <span className="text-teal-300">{processingStage}</span>
+                  <span className="text-brand-400 font-bold">{progress}%</span>
                 </div>
-                <Progress value={progress} className="h-2" />
+                <Progress value={progress} className="h-2" indicatorColor="bg-gradient-to-r from-teal-500 to-emerald-400" />
               </div>
             )}
           </CardHeader>

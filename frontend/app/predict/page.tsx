@@ -11,12 +11,13 @@ import {
   Copy,
   Download,
   Bookmark,
-  Share2,
   RefreshCw,
-  Sliders,
   Dna,
-  ArrowUpRight,
   TrendingUp,
+  Activity,
+  Layers,
+  ChevronRight,
+  ShieldCheck,
 } from "lucide-react";
 import {
   BarChart,
@@ -37,7 +38,7 @@ import { Progress } from "@/components/ui/progress";
 import { MolecularStructurePreview } from "@/components/chemistry/structure-preview";
 import { SAMPLE_COMPOUNDS, SAMPLE_PROTEINS } from "@/lib/mock-data";
 import { predictAffinity } from "@/lib/api";
-import { PredictionResult, BindingCategory } from "@/lib/types";
+import { PredictionResult } from "@/lib/types";
 import {
   formatKd,
   getBindingBadgeStyles,
@@ -55,7 +56,7 @@ function PredictorStudioContent() {
   const [compoundName, setCompoundName] = useState<string>(urlName || "Dasatinib");
   const [smiles, setSmiles] = useState<string>(urlSmiles || SAMPLE_COMPOUNDS[0].smiles);
 
-  // Sync when URL params change (navigating from PubChem search)
+  // Sync when URL params change (e.g. from PubChem compound search)
   useEffect(() => {
     if (urlSmiles) {
       setSmiles(urlSmiles);
@@ -65,7 +66,7 @@ function PredictorStudioContent() {
   }, [urlSmiles, urlName]);
 
   const [selectedProteinPreset, setSelectedProteinPreset] = useState<string>("ABL1");
-  const [targetName, setTargetName] = useState<string>("ABL1 Kinase");
+  const [targetName, setTargetName] = useState<string>("Tyrosine-protein kinase ABL1");
   const [proteinSeq, setProteinSeq] = useState<string>(SAMPLE_PROTEINS[0].sequence);
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -141,6 +142,12 @@ function PredictorStudioContent() {
     exportToJson(`deepdta_inference_${result.compound_name || "ligand"}_${Date.now()}.json`, result);
   };
 
+  // Spectrum calculation (pKd scale from 4.0 to 11.0)
+  const pkdMin = 4.0;
+  const pkdMax = 11.0;
+  const currentPkd = result ? Math.min(Math.max(result.pkd, pkdMin), pkdMax) : 7.0;
+  const spectrumPercent = ((currentPkd - pkdMin) / (pkdMax - pkdMin)) * 100;
+
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Studio Header */}
@@ -151,7 +158,7 @@ function PredictorStudioContent() {
             Predictor Studio
           </h1>
           <p className="text-xs text-zinc-400 mt-1">
-            Compute affinity ($pK_d$) and equilibrium dissociation ($K_d$) with calibrated ensemble uncertainty.
+            Compute binding affinity ($pK_d$) and equilibrium dissociation ($K_d$) with calibrated ensemble uncertainty.
           </p>
         </div>
 
@@ -190,17 +197,17 @@ function PredictorStudioContent() {
                   <Sparkles className="h-4 w-4 text-brand-400" />
                   Ligand Molecule Input
                 </CardTitle>
-                <span className="text-[10px] font-mono text-zinc-400">Chemical SMILES</span>
+                <span className="text-[10px] font-mono text-zinc-400">SMILES Representation</span>
               </div>
               <CardDescription>
-                Select a validated kinase inhibitor or enter a custom compound name & SMILES.
+                Select a benchmark kinase inhibitor or enter custom SMILES.
               </CardDescription>
             </CardHeader>
 
             <CardContent className="space-y-4">
               {/* Presets Select */}
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-zinc-300">Quick-Select Preset Compound:</label>
+                <label className="text-xs font-medium text-zinc-300">Quick-Select Benchmark Compound:</label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
                   {SAMPLE_COMPOUNDS.slice(0, 8).map((comp) => (
                     <button
@@ -208,7 +215,7 @@ function PredictorStudioContent() {
                       onClick={() => handleCompoundPresetChange(comp.name)}
                       className={`px-2 py-1.5 rounded-lg text-xs font-medium border text-center transition-all truncate ${
                         selectedCompoundPreset === comp.name
-                          ? "bg-brand-500/20 text-brand-300 border-brand-500/40"
+                          ? "bg-brand-500/20 text-brand-300 border-brand-500/40 shadow-sm"
                           : "bg-surface-elevated text-zinc-400 border-surface-border hover:text-white"
                       }`}
                       title={comp.name}
@@ -234,8 +241,8 @@ function PredictorStudioContent() {
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-medium text-zinc-300">Canonical SMILES:</label>
-                  <span className="text-[10px] text-zinc-500 font-mono">
-                    {smiles.length} chars
+                  <span className={`text-[10px] font-mono ${smilesValidation.valid ? "text-emerald-400" : "text-amber-400"}`}>
+                    {smiles.length} chars {smilesValidation.valid ? "✓ Valid" : "⚠ Empty"}
                   </span>
                 </div>
                 <Textarea
@@ -269,7 +276,7 @@ function PredictorStudioContent() {
                 <span className="text-[10px] font-mono text-zinc-400">FASTA Sequence</span>
               </div>
               <CardDescription>
-                Choose a benchmark kinase domain or paste an amino acid sequence.
+                Choose a benchmark kinase target or paste an amino acid sequence.
               </CardDescription>
             </CardHeader>
 
@@ -284,7 +291,7 @@ function PredictorStudioContent() {
                       onClick={() => handleProteinPresetChange(prot.id)}
                       className={`px-3 py-2 rounded-lg text-xs font-medium border text-left transition-all ${
                         selectedProteinPreset === prot.id
-                          ? "bg-teal-500/20 text-teal-300 border-teal-500/40"
+                          ? "bg-teal-500/20 text-teal-300 border-teal-500/40 shadow-sm"
                           : "bg-surface-elevated text-zinc-400 border-surface-border hover:text-white"
                       }`}
                     >
@@ -310,8 +317,8 @@ function PredictorStudioContent() {
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-medium text-zinc-300">Amino Acid Sequence:</label>
-                  <span className="text-[10px] text-teal-400 font-mono">
-                    {proteinValidation.length} residues
+                  <span className={`text-[10px] font-mono ${proteinValidation.valid ? "text-teal-400" : "text-amber-400"}`}>
+                    {proteinValidation.length} residues {proteinValidation.valid ? "✓ Valid" : "⚠ Empty"}
                   </span>
                 </div>
                 <Textarea
@@ -331,7 +338,7 @@ function PredictorStudioContent() {
           <Button
             variant="glow"
             size="lg"
-            className="w-full h-12 text-sm font-bold tracking-wide gap-2"
+            className="w-full h-12 text-sm font-bold tracking-wide gap-2 shadow-lg"
             onClick={handleRunPrediction}
             isLoading={isLoading}
           >
@@ -346,15 +353,21 @@ function PredictorStudioContent() {
             <div className="space-y-6 animate-in fade-in duration-300">
               {/* Primary Affinity Verdict Card */}
               <Card className="border-surface-border relative overflow-hidden bg-gradient-to-br from-surface-card to-[#0A111E]">
-                <div className="absolute right-0 top-0 h-32 w-32 bg-brand-500/10 blur-2xl pointer-events-none" />
+                <div className="absolute right-0 top-0 h-40 w-40 bg-brand-500/10 blur-3xl pointer-events-none" />
 
                 <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
                     <div>
-                      <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-400">
-                        Inference Output
-                      </span>
-                      <h2 className="text-xl font-bold text-white mt-0.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-400">
+                          Inference Output
+                        </span>
+                        <span className="inline-flex items-center gap-1 text-[10px] text-brand-400 font-medium px-2 py-0.5 rounded-full bg-brand-500/10 border border-brand-500/20">
+                          <ShieldCheck className="h-3 w-3" />
+                          Calibrated Ensemble
+                        </span>
+                      </div>
+                      <h2 className="text-xl font-bold text-white mt-1">
                         {result.compound_name || "Compound"} + {result.target_name || "Target"}
                       </h2>
                     </div>
@@ -414,12 +427,43 @@ function PredictorStudioContent() {
                     </div>
                   </div>
 
+                  {/* DYNAMIC AFFINITY SPECTRUM GAUGE */}
+                  <div className="rounded-xl border border-surface-border bg-surface-elevated/40 p-4 space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-medium text-zinc-300 flex items-center gap-1.5">
+                        <Activity className="h-3.5 w-3.5 text-brand-400" />
+                        Binding Affinity Spectrum (pK<sub>d</sub>)
+                      </span>
+                      <span className="text-[11px] font-mono text-zinc-400">
+                        95% CI: [{Math.max(4.0, result.pkd - 1.96 * result.uncertainty).toFixed(2)} — {Math.min(11.0, result.pkd + 1.96 * result.uncertainty).toFixed(2)}]
+                      </span>
+                    </div>
+
+                    {/* Gradient track */}
+                    <div className="relative h-3 w-full rounded-full bg-gradient-to-r from-rose-500/80 via-amber-500/80 via-teal-500/80 to-emerald-400 p-0.5">
+                      {/* Marker pin */}
+                      <div
+                        className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-none transition-all duration-500"
+                        style={{ left: `${spectrumPercent}%` }}
+                      >
+                        <div className="h-5 w-2 rounded bg-white shadow-[0_0_8px_rgba(255,255,255,0.9)] border border-black/40" />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-between text-[10px] text-zinc-400 pt-1 font-mono">
+                      <span>4.0 (Weak / &gt;100 µM)</span>
+                      <span>7.0 (100 nM)</span>
+                      <span>9.0 (1 nM)</span>
+                      <span className="text-emerald-400 font-semibold">11.0 (Picomolar)</span>
+                    </div>
+                  </div>
+
                   {/* Confidence Index Meter */}
                   <div className="rounded-xl border border-surface-border bg-surface-elevated/40 p-4 space-y-2">
                     <div className="flex items-center justify-between text-xs">
                       <span className="font-medium text-zinc-300 flex items-center gap-1.5">
                         <CheckCircle2 className="h-3.5 w-3.5 text-brand-400" />
-                        Inference Confidence Score
+                        Ensemble Confidence Metric
                       </span>
                       <span className="font-mono font-bold text-brand-400">
                         {(result.confidence_index * 100).toFixed(1)}%
@@ -427,7 +471,7 @@ function PredictorStudioContent() {
                     </div>
                     <Progress
                       value={result.confidence_index * 100}
-                      className="h-2.5"
+                      className="h-2"
                       indicatorColor="bg-gradient-to-r from-teal-500 to-emerald-400"
                     />
                     <div className="flex justify-between text-[10px] text-zinc-400 pt-0.5">
@@ -486,7 +530,7 @@ function PredictorStudioContent() {
                     <span className="text-[10px] font-mono text-zinc-400">Random Test Split</span>
                   </div>
                   <CardDescription>
-                    Performance of our DeepDTA+ multi-branch ensemble compared to published baselines.
+                    Performance of our DeepDTA+ ensemble compared to published baselines.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -607,7 +651,7 @@ function PredictorStudioContent() {
               <h3 className="text-base font-bold text-white">Inference Engine Ready</h3>
               <p className="text-xs text-zinc-400 max-w-sm mt-1 mb-6 leading-relaxed">
                 Configure your ligand molecule and target protein on the left workbench and click{" "}
-                <strong className="text-zinc-200">"Run Binding Affinity Inference"</strong> to compute
+                <strong className="text-zinc-200">&quot;Run Binding Affinity Inference&quot;</strong> to compute
                 predictions.
               </p>
               <Button
