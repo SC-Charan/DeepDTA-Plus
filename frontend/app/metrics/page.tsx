@@ -358,7 +358,7 @@ export default function DataMetricsPage() {
                               : entry.model.includes("Similarity")
                               ? "#14B8A6"
                               : entry.model.includes("SimBoost")
-                              ? "#8B5CF6"
+                              ? "#09A1A1"
                               : entry.model.includes("KronRLS")
                               ? "#6366F1"
                               : "#475569"

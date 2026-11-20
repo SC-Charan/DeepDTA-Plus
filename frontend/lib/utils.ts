@@ -34,27 +34,27 @@ export function getBindingBadgeStyles(category: BindingCategory): {
   switch (category) {
     case "Very High Binding":
       return {
-        badgeClass: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30",
-        dotColor: "bg-emerald-400",
-        glowClass: "shadow-[0_0_12px_rgba(16,185,129,0.3)]",
+        badgeClass: "bg-[#09A1A1]/15 text-[#3fc4c4] border-[#09A1A1]/50",
+        dotColor: "bg-[#09A1A1]",
+        glowClass: "shadow-[0_0_14px_rgba(9,161,161,0.4)]",
       };
     case "High Binding":
       return {
-        badgeClass: "bg-teal-500/10 text-teal-400 border-teal-500/30",
-        dotColor: "bg-teal-400",
-        glowClass: "shadow-[0_0_12px_rgba(20,184,166,0.25)]",
+        badgeClass: "bg-[#5484A4]/20 text-[#8fb3cf] border-[#5484A4]/55",
+        dotColor: "bg-[#5484A4]",
+        glowClass: "shadow-[0_0_12px_rgba(84,132,164,0.3)]",
       };
     case "Moderate Binding":
       return {
-        badgeClass: "bg-amber-500/10 text-amber-400 border-amber-500/30",
-        dotColor: "bg-amber-400",
-        glowClass: "shadow-[0_0_12px_rgba(245,158,11,0.2)]",
+        badgeClass: "bg-[#F6C992]/15 text-[#F6C992] border-[#F6C992]/45",
+        dotColor: "bg-[#F6C992]",
+        glowClass: "shadow-[0_0_12px_rgba(246,201,146,0.25)]",
       };
     case "No Significant Binding":
     default:
       return {
-        badgeClass: "bg-zinc-500/10 text-zinc-400 border-zinc-500/30",
-        dotColor: "bg-zinc-400",
+        badgeClass: "bg-[#D396A6]/15 text-[#D396A6] border-[#D396A6]/45",
+        dotColor: "bg-[#D396A6]",
         glowClass: "shadow-none",
       };
   }

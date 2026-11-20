@@ -14,7 +14,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
     const variants: Record<string, string> = {
       primary:
-        "bg-gradient-accent text-white shadow-[0_4px_20px_-5px_rgba(139,92,246,0.5)] hover:shadow-[0_8px_30px_-5px_rgba(139,92,246,0.7)] hover:-translate-y-px active:translate-y-0",
+        "bg-gradient-accent text-white shadow-[0_4px_20px_-5px_rgba(9,161,161,0.5)] hover:shadow-[0_8px_30px_-5px_rgba(9,161,161,0.7)] hover:-translate-y-px active:translate-y-0",
       secondary:
         "bg-surface-elevated/60 backdrop-blur-xl border border-border text-heading hover:bg-surface-hover/80 hover:border-border-bright",
       outline:
@@ -24,7 +24,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       danger:
         "bg-accent-pink/15 hover:bg-accent-pink/25 text-accent-pink border border-accent-pink/40",
       glow:
-        "bg-gradient-accent text-white shadow-[0_4px_20px_-5px_rgba(139,92,246,0.5)] hover:shadow-[0_8px_40px_-5px_rgba(236,72,153,0.8)] hover:-translate-y-px active:translate-y-0",
+        "bg-gradient-accent text-white shadow-[0_4px_20px_-5px_rgba(9,161,161,0.5)] hover:shadow-[0_8px_40px_-5px_rgba(84,132,164,0.8)] hover:-translate-y-px active:translate-y-0",
     };
 
     const sizes: Record<string, string> = {
