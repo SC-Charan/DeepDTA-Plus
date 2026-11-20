@@ -89,7 +89,7 @@ function PredictorStudioContent() {
   const [savedSuccess, setSavedSuccess] = useState<boolean>(false);
 
   // Debounced Drug Suggestions
-  const drugTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const drugTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const handleDrugNameChange = (val: string) => {
     setCompoundName(val);
     setPubchemStatus(null);
@@ -143,7 +143,7 @@ function PredictorStudioContent() {
   };
 
   // Debounced UniProt Suggestions
-  const proteinTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const proteinTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const handleProteinQueryChange = (val: string) => {
     setTargetName(val);
     setUniprotStatus(null);

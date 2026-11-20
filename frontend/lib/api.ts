@@ -64,6 +64,9 @@ export async function predictAffinity(request: PredictionRequest): Promise<Predi
     request.compound_name,
     request.target_name
   );
+  // Stamp real timestamp client-side (avoids hydration mismatch from SSR)
+  mockResult.created_at = new Date().toISOString();
+  mockResult.id = `run-${Date.now()}-${mockResult.id.split("-").pop()}`;
   saveRunToHistory(mockResult);
   return mockResult;
 }

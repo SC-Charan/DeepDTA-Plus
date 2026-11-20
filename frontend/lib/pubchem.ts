@@ -92,6 +92,8 @@ export async function fetchPubChemData(name: string): Promise<PubChemCompound> {
 
 /** "Did you mean ...?" suggestions for a misspelled name. Never throws. */
 export async function fetchSuggestions(term: string, limit = 5): Promise<string[]> {
+  // Guard: this function calls a browser-only network API — skip during SSR.
+  if (typeof window === "undefined") return [];
   try {
     const res = await fetch(`${AUTOCOMPLETE}/${encodeURIComponent(term)}/json?limit=${limit}`);
     if (!res.ok) return [];

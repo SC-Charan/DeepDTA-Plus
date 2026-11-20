@@ -214,8 +214,12 @@ export function generateMockPrediction(
     });
   }
 
+  // Use a stable timestamp derived from the hash to prevent hydration mismatches
+  // (Date.now() changes between server prerender and client render)
+  const stableTimestamp = new Date(0).toISOString(); // epoch — will be overwritten client-side
+
   return {
-    id: `run-${Date.now()}-${hash}`,
+    id: `run-${hash}`,
     compound_name: compoundName || "Ligand Molecule",
     smiles,
     target_name: targetName || "Target Kinase",
@@ -227,7 +231,7 @@ export function generateMockPrediction(
     binds: pkd >= 7.0,
     binding_level: category,
     binding_explanation: explanation,
-    created_at: new Date().toISOString(),
+    created_at: stableTimestamp,
     is_mock: true,
     baselines: BENCHMARK_METRICS,
     residues: sampleResidues,

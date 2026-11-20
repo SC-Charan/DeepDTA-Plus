@@ -54,13 +54,17 @@ export const MolecularStructurePreview: React.FC<StructurePreviewProps> = ({
 
   // Compute image URL from CID or SMILES
   const pubchemImageUrl = useMemo(() => {
-    if (!valid || !smiles.trim()) return null;
-    if (cid && cid > 0) {
-      return `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/CID/${cid}/PNG?image_size=320x220`;
+    try {
+      if (!valid || !smiles.trim()) return null;
+      if (cid && cid > 0) {
+        return `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/CID/${cid}/PNG?image_size=320x220`;
+      }
+      const encoded = encodeURIComponent(smiles.trim());
+      if (!encoded) return null;
+      return `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/${encoded}/PNG?image_size=320x220`;
+    } catch {
+      return null;
     }
-    return `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/${encodeURIComponent(
-      smiles.trim()
-    )}/PNG?image_size=320x220`;
   }, [cid, smiles, valid]);
 
   // Reset image states when smiles/cid changes
@@ -278,7 +282,7 @@ export const MolecularStructurePreview: React.FC<StructurePreviewProps> = ({
         {valid && smiles.trim() ? (
           <>
             {/* PUBCHEM IMAGE RENDER */}
-            {!showWireframe && pubchemImageUrl && (
+            {!showWireframe && pubchemImageUrl && !imageError && (
               <div className="relative h-full w-full flex items-center justify-center p-2">
                 {!imageLoaded && (
                   <div className="absolute inset-0 flex items-center justify-center bg-[#070A0F]/80">

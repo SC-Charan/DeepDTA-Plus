@@ -66,6 +66,8 @@ export async function fetchUniProtProtein(query: string): Promise<UniProtProtein
 }
 
 export async function fetchProteinSuggestions(term: string): Promise<Array<{ gene: string; name: string; accession: string }>> {
+  // Guard: this function calls a browser-only network API — skip during SSR.
+  if (typeof window === "undefined") return [];
   const clean = term.trim();
   if (clean.length < 2) return [];
 
