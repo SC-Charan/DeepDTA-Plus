@@ -49,6 +49,12 @@ import {
 import { fetchPubChemData, fetchSuggestions, PubChemCompound } from "@/lib/pubchem";
 import { fetchUniProtProtein, fetchProteinSuggestions, UniProtProtein } from "@/lib/uniprot";
 
+/** Safely format a numeric field that might arrive as string from the API. */
+function safeFixed(val: unknown, decimals: number): string {
+  const n = Number(val);
+  return isNaN(n) ? "—" : n.toFixed(decimals);
+}
+
 function PredictorStudioContent() {
   const searchParams = useSearchParams();
   const urlSmiles = searchParams.get("smiles") ?? "";
@@ -265,7 +271,7 @@ function PredictorStudioContent() {
   // Spectrum calculation (pKd scale from 4.0 to 11.0)
   const pkdMin = 4.0;
   const pkdMax = 11.0;
-  const currentPkd = result ? Math.min(Math.max(result.pkd, pkdMin), pkdMax) : 7.0;
+  const currentPkd = result ? Math.min(Math.max(Number(result.pkd) || 7.0, pkdMin), pkdMax) : 7.0;
   const spectrumPercent = ((currentPkd - pkdMin) / (pkdMax - pkdMin)) * 100;
 
   return (
@@ -637,7 +643,7 @@ function PredictorStudioContent() {
                         Predicted Affinity
                       </span>
                       <div className="text-2xl font-black font-mono text-emerald-400 mt-0.5">
-                        {result.pkd.toFixed(3)}
+                        {safeFixed(result.pkd, 3)}
                       </div>
                       <span className="text-[10px] text-zinc-400">
                         pK<sub>d</sub> = -log<sub>10</sub>(K<sub>d</sub> / 10<sup>9</sup>)
@@ -661,7 +667,7 @@ function PredictorStudioContent() {
                         Uncertainty Spread
                       </span>
                       <div className="text-2xl font-black font-mono text-cyan-300 mt-0.5">
-                        ±{result.uncertainty.toFixed(3)}
+                        ±{safeFixed(result.uncertainty, 3)}
                       </div>
                       <span className="text-[10px] text-zinc-400">
                         Model disagreement (σ)
@@ -677,7 +683,7 @@ function PredictorStudioContent() {
                         Affinity Spectrum Position
                       </span>
                       <span className="text-[10px] font-mono text-zinc-400">
-                        95% CI: [{Math.max(4.0, result.pkd - 1.96 * result.uncertainty).toFixed(2)} — {Math.min(11.0, result.pkd + 1.96 * result.uncertainty).toFixed(2)}]
+                        95% CI: [{safeFixed(Math.max(4.0, (Number(result.pkd) || 7.0) - 1.96 * (Number(result.uncertainty) || 0.15)), 2)} — {safeFixed(Math.min(11.0, (Number(result.pkd) || 7.0) + 1.96 * (Number(result.uncertainty) || 0.15)), 2)}]
                       </span>
                     </div>
 

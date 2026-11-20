@@ -226,7 +226,7 @@ export default function HistoryPage() {
                     <div>
                       <span className="text-[10px] text-zinc-400 uppercase block">Affinity (pKd)</span>
                       <span className="text-base font-bold text-emerald-400">
-                        {run.pkd.toFixed(3)}
+                        {Number(run.pkd).toFixed(3)}
                       </span>
                     </div>
                     <div>
@@ -238,7 +238,7 @@ export default function HistoryPage() {
                   </div>
 
                   <div className="flex items-center justify-between text-[11px] text-zinc-400 font-mono">
-                    <span>Spread: ±{run.uncertainty.toFixed(3)}</span>
+                    <span>Spread: ±{Number(run.uncertainty).toFixed(3)}</span>
                     <span className="flex items-center gap-1 text-[10px]">
                       <Calendar className="h-3 w-3" />
                       {new Date(run.created_at).toLocaleDateString()}
@@ -304,7 +304,7 @@ export default function HistoryPage() {
               <div className="rounded-xl border border-surface-border bg-surface-elevated p-3">
                 <span className="text-[10px] text-zinc-400 uppercase font-mono">Predicted pKd</span>
                 <div className="text-2xl font-bold font-mono text-emerald-400">
-                  {selectedRun.pkd.toFixed(3)}
+                  {Number(selectedRun.pkd).toFixed(3)}
                 </div>
               </div>
               <div className="rounded-xl border border-surface-border bg-surface-elevated p-3">
@@ -316,7 +316,7 @@ export default function HistoryPage() {
               <div className="rounded-xl border border-surface-border bg-surface-elevated p-3">
                 <span className="text-[10px] text-zinc-400 uppercase font-mono">Uncertainty (σ)</span>
                 <div className="text-2xl font-bold font-mono text-cyan-300">
-                  ±{selectedRun.uncertainty.toFixed(3)}
+                  ±{Number(selectedRun.uncertainty).toFixed(3)}
                 </div>
               </div>
             </div>

@@ -76,7 +76,7 @@ export async function fetchPubChemData(name: string): Promise<PubChemCompound> {
     cid,
     iupacName: props.IUPACName ?? "N/A",
     molecularFormula: props.MolecularFormula ?? "N/A",
-    molecularWeight: props.MolecularWeight ?? 0,
+    molecularWeight: Number(props.MolecularWeight) || 0,
     canonicalSMILES: canonicalSMILES || isomericSMILES,
     isomericSMILES: isomericSMILES || canonicalSMILES,
     inchiKey: props.InChIKey ?? "N/A",
