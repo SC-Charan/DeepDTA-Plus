@@ -50,6 +50,9 @@ export async function predictAffinity(request: PredictionRequest): Promise<Predi
 
     if (res.ok) {
       const result: PredictionResult = await res.json();
+      result.pkd = Number(result.pkd) || 7.0;
+      result.kd_nM = Number(result.kd_nM) || Math.pow(10, 9 - result.pkd);
+      result.uncertainty = Number(result.uncertainty) || 0.15;
       saveRunToHistory(result);
       return result;
     }

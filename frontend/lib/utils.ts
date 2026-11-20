@@ -6,17 +6,21 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatKd(kd_nM: number): string {
-  if (kd_nM < 1) {
-    return `${(kd_nM * 1000).toFixed(1)} pM`;
+export function formatKd(kd_nM: unknown): string {
+  const val = Number(kd_nM);
+  if (isNaN(val) || val <= 0) {
+    return "N/A";
   }
-  if (kd_nM >= 1000000) {
-    return `${(kd_nM / 1000000).toFixed(2)} mM`;
+  if (val < 1) {
+    return `${(val * 1000).toFixed(1)} pM`;
   }
-  if (kd_nM >= 1000) {
-    return `${(kd_nM / 1000).toFixed(2)} µM`;
+  if (val >= 1000000) {
+    return `${(val / 1000000).toFixed(2)} mM`;
   }
-  return `${kd_nM.toFixed(1)} nM`;
+  if (val >= 1000) {
+    return `${(val / 1000).toFixed(2)} µM`;
+  }
+  return `${val.toFixed(1)} nM`;
 }
 
 export function categorizeBinding(pkd: number): BindingCategory {

@@ -407,9 +407,9 @@ export const MolecularStructurePreview: React.FC<StructurePreviewProps> = ({
                 {molecularFormula}
               </span>
             )}
-            {molecularWeight !== undefined && molecularWeight > 0 && (
+            {molecularWeight !== undefined && Number(molecularWeight) > 0 && (
               <span className="rounded bg-surface-elevated/90 px-1.5 py-0.5 border border-surface-border">
-                {molecularWeight.toFixed(1)} g/mol
+                {Number(molecularWeight).toFixed(1)} g/mol
               </span>
             )}
             <span className="rounded bg-surface-elevated/90 px-1.5 py-0.5 border border-surface-border text-zinc-400">

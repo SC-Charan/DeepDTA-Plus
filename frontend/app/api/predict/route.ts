@@ -44,16 +44,21 @@ export async function POST(req: NextRequest) {
       if (backendRes.ok) {
         const data = await backendRes.json();
         // Enrich backend response with visualization baselines
+        // Coerce numeric fields to Number — FastAPI may return strings over JSON
+        const pkdNum = Number(data.pkd) || 7.0;
+        const kdNum = Number(data.kd_nM) || Math.pow(10, 9 - pkdNum);
+        const uncNum = Number(data.uncertainty) || 0.15;
+
         const enriched: PredictionResult = {
           id: `run-${Date.now()}`,
           compound_name: data.compound_name || body.compound_name,
           smiles: data.smiles || body.smiles || "",
           target_name: body.target_name || "Target Protein",
           protein_sequence: body.protein_sequence,
-          pkd: data.pkd,
-          kd_nM: data.kd_nM,
-          uncertainty: data.uncertainty,
-          confidence_index: Math.max(0.65, Math.min(0.98, 1 - data.uncertainty)),
+          pkd: pkdNum,
+          kd_nM: kdNum,
+          uncertainty: uncNum,
+          confidence_index: Math.max(0.65, Math.min(0.98, 1 - uncNum)),
           binds: data.binds,
           binding_level: data.binding_level,
           binding_explanation: `Model evaluated via PyTorch FastAPI microservice (${data.binding_level}).`,

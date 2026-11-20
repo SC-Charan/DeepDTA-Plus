@@ -404,7 +404,7 @@ export default function BatchScreeningPage() {
               {topHit ? topHit.compound_name : "—"}
             </div>
             <div className="text-[10px] font-mono text-zinc-400 mt-0.5">
-              {topHit && topHit.pkd !== undefined ? `pK_d: ${topHit.pkd.toFixed(3)}` : "—"}
+              {topHit && topHit.pkd !== undefined ? `pK_d: ${Number(topHit.pkd).toFixed(3)}` : "—"}
             </div>
           </div>
         </div>
@@ -574,7 +574,7 @@ export default function BatchScreeningPage() {
                       </td>
                       <td className="py-2.5 px-3 font-mono text-teal-400">{item.target_id}</td>
                       <td className="py-2.5 px-3 text-right font-mono font-bold text-emerald-400">
-                        {item.pkd !== undefined ? item.pkd.toFixed(3) : "—"}
+                        {item.pkd !== undefined ? Number(item.pkd).toFixed(3) : "—"}
                       </td>
                       <td className="py-2.5 px-3 text-right font-mono text-teal-300">
                         {item.kd_nM !== undefined ? formatKd(item.kd_nM) : "—"}
