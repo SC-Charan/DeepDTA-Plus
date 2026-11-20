@@ -1,20 +1,23 @@
 import type { Config } from "tailwindcss";
 
 const palette = {
-  bgBase: "#06070D",
-  bgSurface: "#0C0E18",
-  bgElevated: "#14172A",
-  bgHover: "#1B1F35",
-  borderSubtle: "#1F2338",
-  borderDefault: "#2D3252",
-  borderBright: "#404878",
-  accent: "#8B5CF6",
-  accentBright: "#A78BFA",
-  accentPink: "#EC4899",
-  accentCyan: "#06B6D4",
+  // DeepDTA + palette: sand F6C992 · deep 30525C · mist ACC0D3 · rose D396A6 · teal 09A1A1 · steel 5484A4
+  bgBase: "#000000",
+  bgSurface: "#070c0e",
+  bgElevated: "#0d1518",
+  bgHover: "#132026",
+  borderSubtle: "#14242a",
+  borderDefault: "#1d3036",
+  borderBright: "#30525C",
+  accent: "#09A1A1",
+  accentBright: "#09A1A1",
+  accentPink: "#D396A6",
+  accentCyan: "#5484A4",
+  sand: "#F6C992",
+  mist: "#ACC0D3",
   heading: "#F8FAFC",
-  body: "#CBD5E1",
-  muted: "#7A86B0",
+  body: "#ACC0D3",
+  muted: "#7b93a6",
 } as const;
 
 const config: Config = {
@@ -47,10 +50,10 @@ const config: Config = {
       "border-bright": palette.borderBright,
 
       // Binding
-      "binding-veryhigh": { DEFAULT: palette.accentBright, text: palette.bgSurface },
-      "binding-high": { DEFAULT: palette.accentPink, text: palette.heading },
-      "binding-moderate": { DEFAULT: palette.accentCyan, text: palette.bgSurface },
-      "binding-none": { DEFAULT: palette.bgElevated, text: palette.muted },
+      "binding-veryhigh": { DEFAULT: palette.accent, text: palette.bgBase },
+      "binding-high": { DEFAULT: palette.accentCyan, text: palette.heading },
+      "binding-moderate": { DEFAULT: palette.sand, text: palette.bgBase },
+      "binding-none": { DEFAULT: palette.accentPink, text: palette.bgBase },
 
       // Legacy surfaces
       background: palette.bgBase,
@@ -104,11 +107,11 @@ const config: Config = {
       lg: "0 16px 40px rgba(0,0,0,0.6)",
       xl: "0 24px 60px rgba(0,0,0,0.7)",
       inner: "inset 0 1px 0 rgba(248,250,252,0.06)",
-      glow: "0 0 30px -5px rgba(139, 92, 246, 0.5)",
-      "glow-sm": "0 0 20px -5px rgba(139, 92, 246, 0.4)",
-      "glow-accent": "0 0 40px -10px rgba(167, 139, 250, 0.6)",
-      "glow-pink": "0 0 30px -5px rgba(236, 72, 153, 0.5)",
-      "glow-cyan": "0 0 30px -5px rgba(6, 182, 212, 0.5)",
+      glow: "0 0 30px -5px rgba(9, 161, 161, 0.5)",
+      "glow-sm": "0 0 20px -5px rgba(9, 161, 161, 0.4)",
+      "glow-accent": "0 0 40px -10px rgba(172, 192, 211, 0.6)",
+      "glow-pink": "0 0 30px -5px rgba(211, 150, 166, 0.5)",
+      "glow-cyan": "0 0 30px -5px rgba(84, 132, 164, 0.5)",
       card: "0 8px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(248,250,252,0.04)",
       "card-hover": "0 16px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(248,250,252,0.06)",
       z1: "0 2px 8px rgba(0,0,0,0.4)",
@@ -142,8 +145,8 @@ const config: Config = {
       }),
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
-        "gradient-accent": "linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%)",
-        "gradient-accent-soft": "linear-gradient(135deg, rgba(139,92,246,0.15) 0%, rgba(236,72,153,0.15) 100%)",
+        "gradient-accent": "linear-gradient(135deg, #09A1A1 0%, #5484A4 100%)",
+        "gradient-accent-soft": "linear-gradient(135deg, rgba(9,161,161,0.15) 0%, rgba(84,132,164,0.15) 100%)",
         "grid-faint": "linear-gradient(rgba(248,250,252,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(248,250,252,0.03) 1px, transparent 1px)",
       },
       backgroundSize: { grid: "40px 40px" },

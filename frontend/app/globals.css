@@ -4,19 +4,19 @@
 
 @layer base {
   :root {
-    --bg-base: #06070D;
-    --bg-surface: #0C0E18;
-    --bg-elevated: #14172A;
-    --border-subtle: #1F2338;
-    --border: #2D3252;
-    --border-bright: #404878;
-    --accent: #8B5CF6;
-    --accent-bright: #A78BFA;
-    --accent-pink: #EC4899;
-    --accent-cyan: #06B6D4;
+    --bg-base: #000000;
+    --bg-surface: #070c0e;
+    --bg-elevated: #0d1518;
+    --border-subtle: #14242a;
+    --border: #1d3036;
+    --border-bright: #30525C;
+    --accent: #09A1A1;
+    --accent-bright: #09A1A1;
+    --accent-pink: #D396A6;
+    --accent-cyan: #5484A4;
     --text-primary: #F8FAFC;
-    --text-secondary: #CBD5E1;
-    --text-muted: #7A86B0;
+    --text-secondary: #ACC0D3;
+    --text-muted: #7b93a6;
   }
 
   * { box-sizing: border-box; }
@@ -65,7 +65,7 @@
 ::-webkit-scrollbar-thumb:hover { background: var(--border-bright); }
 
 /* Selection */
-::selection { background: rgba(139, 92, 246, 0.4); color: var(--text-primary); }
+::selection { background: rgba(9, 161, 161, 0.4); color: var(--text-primary); }
 
 /* Focus */
 :focus-visible {
@@ -77,7 +77,7 @@
 @layer components {
   /* Glass panels — the core surface */
   .panel {
-    background: rgba(12, 14, 24, 0.7);
+    background: rgba(7, 12, 14, 0.7);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border: 1px solid var(--border);
@@ -86,7 +86,7 @@
   }
 
   .panel-secondary {
-    background: rgba(20, 23, 42, 0.6);
+    background: rgba(13, 21, 24, 0.6);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border: 1px solid var(--border-bright);
@@ -95,13 +95,13 @@
   }
 
   .panel-sunken {
-    background: rgba(6, 7, 13, 0.8);
+    background: rgba(0, 0, 0, 0.8);
     border: 1px solid var(--border-subtle);
     border-radius: 12px;
   }
 
   .glass, .surface-elevated {
-    background: rgba(12, 14, 24, 0.7);
+    background: rgba(7, 12, 14, 0.7);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border: 1px solid var(--border);
@@ -110,7 +110,7 @@
   }
 
   .text-gradient {
-    background: linear-gradient(135deg, #A78BFA 0%, #EC4899 100%);
+    background: linear-gradient(135deg, #09A1A1 0%, #ACC0D3 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -128,15 +128,15 @@
     font-size: 0.9375rem;
     line-height: 1.2;
     color: #FFFFFF;
-    background: linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%);
-    border: 1px solid rgba(167, 139, 250, 0.5);
+    background: linear-gradient(135deg, #09A1A1 0%, #5484A4 100%);
+    border: 1px solid rgba(9, 161, 161, 0.5);
     border-radius: 8px;
     cursor: pointer;
     transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 4px 20px -5px rgba(139, 92, 246, 0.5);
+    box-shadow: 0 4px 20px -5px rgba(9, 161, 161, 0.5);
   }
   .btn-accent:hover {
-    box-shadow: 0 8px 30px -5px rgba(139, 92, 246, 0.7);
+    box-shadow: 0 8px 30px -5px rgba(9, 161, 161, 0.7);
     transform: translateY(-1px);
   }
   .btn-accent:active { transform: translateY(0); }
@@ -151,7 +151,7 @@
     font-weight: 500;
     font-size: 0.9375rem;
     color: var(--text-primary);
-    background: rgba(20, 23, 42, 0.6);
+    background: rgba(13, 21, 24, 0.6);
     border: 1px solid var(--border);
     border-radius: 8px;
     cursor: pointer;
@@ -159,7 +159,7 @@
     backdrop-filter: blur(20px);
   }
   .btn-secondary:hover {
-    background: rgba(27, 31, 53, 0.8);
+    background: rgba(19, 32, 38, 0.8);
     border-color: var(--border-bright);
   }
 
@@ -172,7 +172,7 @@
 
   /* Inputs */
   .input-pixel {
-    background: rgba(6, 7, 13, 0.8);
+    background: rgba(0, 0, 0, 0.8);
     color: var(--text-primary);
     border: 1px solid var(--border);
     border-radius: 8px;
@@ -185,23 +185,23 @@
   .input-pixel:focus {
     outline: none;
     border-color: var(--accent-bright);
-    box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.15);
+    box-shadow: 0 0 0 3px rgba(9, 161, 161, 0.15);
   }
 
   /* Progress */
   .progress-track {
     height: 0.5rem;
     overflow: hidden;
-    background: rgba(6, 7, 13, 0.8);
+    background: rgba(0, 0, 0, 0.8);
     border-radius: 9999px;
     border: 1px solid var(--border-subtle);
   }
   .progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, #8B5CF6, #EC4899);
+    background: linear-gradient(90deg, #09A1A1, #5484A4);
     border-radius: 9999px;
     transition: width 400ms cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
+    box-shadow: 0 0 20px rgba(9, 161, 161, 0.5);
   }
 
   /* Binding status */
@@ -218,26 +218,25 @@
     border: 1px solid transparent;
   }
   .binding-veryhigh {
-    background: rgba(167, 139, 250, 0.15);
-    color: #C4B5FD;
-    border-color: rgba(167, 139, 250, 0.4);
-    box-shadow: 0 0 20px -5px rgba(167, 139, 250, 0.4);
+    background: rgba(9, 161, 161, 0.16);
+    color: #3fc4c4;
+    border-color: rgba(9, 161, 161, 0.5);
+    box-shadow: 0 0 20px -5px rgba(9, 161, 161, 0.45);
   }
   .binding-high {
-    background: rgba(236, 72, 153, 0.15);
-    color: #F9A8D4;
-    border-color: rgba(236, 72, 153, 0.4);
-    box-shadow: 0 0 20px -5px rgba(236, 72, 153, 0.4);
+    background: rgba(84, 132, 164, 0.18);
+    color: #8fb3cf;
+    border-color: rgba(84, 132, 164, 0.55);
   }
   .binding-moderate {
-    background: rgba(6, 182, 212, 0.15);
-    color: #67E8F9;
-    border-color: rgba(6, 182, 212, 0.4);
+    background: rgba(246, 201, 146, 0.14);
+    color: #F6C992;
+    border-color: rgba(246, 201, 146, 0.45);
   }
   .binding-none {
-    background: rgba(20, 23, 42, 0.6);
-    color: var(--text-muted);
-    border-color: var(--border);
+    background: rgba(211, 150, 166, 0.14);
+    color: #D396A6;
+    border-color: rgba(211, 150, 166, 0.45);
   }
 
   .hero-grid {
@@ -249,9 +248,9 @@
 
   .skeleton {
     background: linear-gradient(90deg,
-      rgba(20, 23, 42, 0.6) 0%,
-      rgba(27, 31, 53, 0.8) 50%,
-      rgba(20, 23, 42, 0.6) 100%);
+      rgba(13, 21, 24, 0.6) 0%,
+      rgba(19, 32, 38, 0.8) 50%,
+      rgba(13, 21, 24, 0.6) 100%);
     background-size: 200% 100%;
     animation: shimmer 2s linear infinite;
     border-radius: 8px;
