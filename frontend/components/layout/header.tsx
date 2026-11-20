@@ -24,8 +24,8 @@ export const Header: React.FC = () => {
     <header className="sticky top-0 z-20 flex h-14 w-full items-center justify-between border-b border-surface-border bg-canvas-subtle/90 backdrop-blur-md px-5">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-1.5 text-xs text-fg-muted">
-        <Link href="/" className="hover:text-fg transition-colors font-medium">
-          DeepDTA
+        <Link href="/" className="hover:text-fg transition-colors font-semibold">
+          deepdta<span className="text-brand-400 font-bold">+</span>
         </Link>
         <span className="text-fg-subtle">/</span>
         <span className="text-fg font-medium">{page}</span>

@@ -7,14 +7,10 @@ export function ProteinBackground() {
       {/* Base gradient */}
       <div className="absolute inset-0 bg-gradient-to-br from-[#06070D] via-[#0A0D1A] to-[#0F0820]" />
 
-      {/* Orb 1 — violet */}
-      <div className="absolute -top-[15%] -left-[10%] w-[65vw] h-[65vw] max-w-[900px] max-h-[900px] rounded-full bg-[#8B5CF6]/25 blur-[120px] animate-orb-1" />
-
-      {/* Orb 2 — pink */}
-      <div className="absolute top-[25%] -right-[15%] w-[55vw] h-[55vw] max-w-[800px] max-h-[800px] rounded-full bg-[#EC4899]/20 blur-[120px] animate-orb-2" />
-
-      {/* Orb 3 — cyan */}
-      <div className="absolute -bottom-[20%] left-[15%] w-[50vw] h-[50vw] max-w-[700px] max-h-[700px] rounded-full bg-[#06B6D4]/15 blur-[120px] animate-orb-3" />
+      {/* Static ambient glow orbs — motionless to prevent scroll jitter */}
+      <div className="absolute -top-[15%] -left-[10%] w-[65vw] h-[65vw] max-w-[900px] max-h-[900px] rounded-full bg-[#8B5CF6]/20 blur-[140px]" />
+      <div className="absolute top-[25%] -right-[15%] w-[55vw] h-[55vw] max-w-[800px] max-h-[800px] rounded-full bg-[#EC4899]/15 blur-[140px]" />
+      <div className="absolute -bottom-[20%] left-[15%] w-[50vw] h-[50vw] max-w-[700px] max-h-[700px] rounded-full bg-[#06B6D4]/12 blur-[140px]" />
 
       {/* Grid overlay */}
       <div

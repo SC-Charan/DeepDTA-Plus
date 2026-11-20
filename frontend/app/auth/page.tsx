@@ -68,7 +68,7 @@ export default function AuthPage() {
       <div className="absolute -bottom-12 left-1/3 h-64 w-80 rounded-full bg-teal-500/10 blur-[100px] pointer-events-none" />
 
       {/* Glassmorphic Container */}
-      <div className="relative w-full max-w-md animate-in fade-in zoom-in-95 duration-200">
+      <div className="relative w-full max-w-md">
         <Card className="border-surface-border/80 bg-surface-card/90 shadow-2xl backdrop-blur-2xl">
           <CardHeader className="text-center pb-4">
             <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-teal-500 p-0.5 shadow-glow">

@@ -146,7 +146,7 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<number>(0);
 
   return (
-    <div className="space-y-10 animate-fade-in pb-12">
+    <div className="space-y-10 pb-12">
       {/* ── Hero Banner with Dynamic Gradient Backdrop ── */}
       <section className="relative rounded-2xl border border-surface-border bg-gradient-to-br from-surface-card via-canvas to-surface-elevated/70 p-8 sm:p-10 overflow-hidden shadow-2xl">
         {/* Glow Spheres */}

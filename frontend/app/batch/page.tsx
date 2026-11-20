@@ -242,7 +242,7 @@ export default function BatchScreeningPage() {
   ];
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-surface-border">
         <div>
@@ -361,7 +361,7 @@ export default function BatchScreeningPage() {
 
       {/* DYNAMIC SCREENING SUMMARY STATS */}
       {completedCount > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 animate-in fade-in duration-300">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className="rounded-xl border border-surface-border bg-surface-card p-3.5">
             <div className="flex items-center justify-between text-zinc-400 text-xs">
               <span>Screened</span>

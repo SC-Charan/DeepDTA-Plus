@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { MolecularStructurePreview } from "@/components/chemistry/structure-preview";
 import {
   CompoundNotFoundError,
   fetchPubChemData,
@@ -75,7 +76,7 @@ export default function CompoundSearchPage() {
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-surface-border">
         <div>
@@ -173,7 +174,7 @@ export default function CompoundSearchPage() {
 
       {/* Result */}
       {compound && !isLoading && (
-        <div className="space-y-4 animate-in fade-in duration-300">
+        <div className="space-y-4">
           {/* Main Info */}
           <Card className="border-surface-border bg-gradient-to-br from-surface-card to-[#0A111E]">
             <CardHeader className="pb-3">
@@ -199,49 +200,59 @@ export default function CompoundSearchPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-5">
-              {/* Key Properties Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                {[
-                  { label: "Molecular Formula", value: compound.molecularFormula, icon: <Atom className="h-3.5 w-3.5 text-teal-400" /> },
-                  { label: "Molecular Weight", value: `${compound.molecularWeight} g/mol`, icon: <Weight className="h-3.5 w-3.5 text-cyan-400" /> },
-                  { label: "XLogP", value: compound.xlogp !== undefined ? String(compound.xlogp) : "N/A", icon: <Info className="h-3.5 w-3.5 text-brand-400" /> },
-                  { label: "Heavy Atoms", value: compound.heavyAtomCount !== undefined ? String(compound.heavyAtomCount) : "N/A", icon: <Hash className="h-3.5 w-3.5 text-purple-400" /> },
-                  { label: "H-Bond Donors", value: compound.hbondDonorCount !== undefined ? String(compound.hbondDonorCount) : "N/A", icon: <FlaskConical className="h-3.5 w-3.5 text-emerald-400" /> },
-                  { label: "H-Bond Acceptors", value: compound.hbondAcceptorCount !== undefined ? String(compound.hbondAcceptorCount) : "N/A", icon: <FlaskConical className="h-3.5 w-3.5 text-emerald-400" /> },
-                  { label: "Rotatable Bonds", value: compound.rotatableBondCount !== undefined ? String(compound.rotatableBondCount) : "N/A", icon: <Info className="h-3.5 w-3.5 text-zinc-400" /> },
-                  { label: "Complexity", value: compound.complexity !== undefined ? String(compound.complexity) : "N/A", icon: <Info className="h-3.5 w-3.5 text-zinc-400" /> },
-                ].map((p) => (
-                  <div key={p.label} className="rounded-lg border border-surface-border bg-surface-elevated/60 p-3">
-                    <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 uppercase tracking-wide mb-1">
-                      {p.icon}
-                      {p.label}
-                    </div>
-                    <div className="text-sm font-bold font-mono text-zinc-100">{p.value}</div>
-                  </div>
-                ))}
-              </div>
+              {/* Structure and Properties Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+                {/* 2D Structure Preview */}
+                <div className="lg:col-span-5">
+                  <MolecularStructurePreview
+                    smiles={compound.canonicalSMILES}
+                    compoundName={compound.synonyms[0] ?? "Compound"}
+                    cid={compound.cid}
+                    molecularFormula={compound.molecularFormula}
+                    molecularWeight={compound.molecularWeight}
+                  />
+                </div>
 
-              {/* Canonical SMILES */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-zinc-300">Canonical SMILES</span>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => copySmiles(compound.canonicalSMILES)}
-                      className="text-[10px] text-brand-400 hover:text-brand-300 flex items-center gap-1 transition-colors"
-                    >
-                      <CheckCircle2 className="h-3 w-3" />
-                      {copiedSmiles ? "Copied!" : "Copy"}
-                    </button>
+                {/* Key Properties Grid */}
+                <div className="lg:col-span-7 flex flex-col justify-between gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                    {[
+                      { label: "Formula", value: compound.molecularFormula, icon: <Atom className="h-3.5 w-3.5 text-teal-400" /> },
+                      { label: "Mol Weight", value: `${compound.molecularWeight} g/mol`, icon: <Weight className="h-3.5 w-3.5 text-cyan-400" /> },
+                      { label: "XLogP", value: compound.xlogp !== undefined ? String(compound.xlogp) : "N/A", icon: <Info className="h-3.5 w-3.5 text-brand-400" /> },
+                      { label: "Heavy Atoms", value: compound.heavyAtomCount !== undefined ? String(compound.heavyAtomCount) : "N/A", icon: <Hash className="h-3.5 w-3.5 text-purple-400" /> },
+                      { label: "H-Donors", value: compound.hbondDonorCount !== undefined ? String(compound.hbondDonorCount) : "N/A", icon: <FlaskConical className="h-3.5 w-3.5 text-emerald-400" /> },
+                      { label: "H-Acceptors", value: compound.hbondAcceptorCount !== undefined ? String(compound.hbondAcceptorCount) : "N/A", icon: <FlaskConical className="h-3.5 w-3.5 text-emerald-400" /> },
+                      { label: "Rotatable", value: compound.rotatableBondCount !== undefined ? String(compound.rotatableBondCount) : "N/A", icon: <Info className="h-3.5 w-3.5 text-zinc-400" /> },
+                      { label: "Complexity", value: compound.complexity !== undefined ? String(compound.complexity) : "N/A", icon: <Info className="h-3.5 w-3.5 text-zinc-400" /> },
+                    ].map((p) => (
+                      <div key={p.label} className="rounded-lg border border-surface-border bg-surface-elevated/60 p-2.5">
+                        <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 uppercase tracking-wide mb-0.5">
+                          {p.icon}
+                          {p.label}
+                        </div>
+                        <div className="text-xs font-bold font-mono text-zinc-100 truncate">{p.value}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Canonical SMILES */}
+                  <div className="space-y-1 mt-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-medium text-zinc-300">Canonical SMILES</span>
+                      <button
+                        onClick={() => copySmiles(compound.canonicalSMILES)}
+                        className="text-[10px] text-brand-400 hover:text-brand-300 flex items-center gap-1 transition-colors"
+                      >
+                        <CheckCircle2 className="h-3 w-3" />
+                        {copiedSmiles ? "Copied!" : "Copy SMILES"}
+                      </button>
+                    </div>
+                    <div className="rounded-lg bg-surface-elevated border border-surface-border p-2.5 font-mono text-xs text-zinc-200 break-all leading-relaxed">
+                      {compound.canonicalSMILES}
+                    </div>
                   </div>
                 </div>
-                <div className="rounded-lg bg-surface-elevated border border-surface-border p-3 font-mono text-xs text-zinc-200 break-all leading-relaxed">
-                  {compound.canonicalSMILES}
-                </div>
-                <p className="text-[10px] text-zinc-500">
-                  Copy this SMILES and paste it directly in the{" "}
-                  <a href="/predict" className="text-brand-400 hover:underline">Predictor Studio</a> to run a binding affinity prediction.
-                </p>
               </div>
 
               {/* InChI Key */}

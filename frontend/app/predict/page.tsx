@@ -275,7 +275,7 @@ function PredictorStudioContent() {
   const spectrumPercent = ((currentPkd - pkdMin) / (pkdMax - pkdMin)) * 100;
 
   return (
-    <div className="space-y-4 animate-in fade-in duration-300">
+    <div className="space-y-4">
       {/* Studio Header (Compact) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-surface-border">
         <div>
@@ -355,7 +355,7 @@ function PredictorStudioContent() {
             <CardContent className="px-4 pb-4 pt-1 space-y-3">
               {/* TAB 1: DRUG INPUT & PUBCHEM LINK */}
               {activeWorkbenchTab === "drug" && (
-                <div className="space-y-3 animate-in fade-in duration-200">
+                <div className="space-y-3">
                   {/* PubChem Connected Drug Search */}
                   <div className="space-y-1 relative">
                     <div className="flex items-center justify-between">
@@ -464,7 +464,7 @@ function PredictorStudioContent() {
 
               {/* TAB 2: TARGET PROTEIN INPUT & UNIPROT LINK */}
               {activeWorkbenchTab === "protein" && (
-                <div className="space-y-3 animate-in fade-in duration-200">
+                <div className="space-y-3">
                   {/* UniProt Connected Target Search */}
                   <div className="space-y-1 relative">
                     <div className="flex items-center justify-between">
@@ -598,7 +598,7 @@ function PredictorStudioContent() {
         {/* RIGHT COLUMN: Results Dashboard (7 cols on lg, zero dead vertical space) */}
         <div className="lg:col-span-7 space-y-3">
           {result ? (
-            <div className="space-y-3 animate-in fade-in duration-300">
+            <div className="space-y-3">
               {/* HIGHLIGHTED BINDING AFFINITY STATUS CARD */}
               <Card className="border-surface-border relative overflow-hidden bg-gradient-to-br from-surface-card to-[#09101D] shadow-xl">
                 <div className="absolute right-0 top-0 h-36 w-36 bg-brand-500/10 blur-3xl pointer-events-none" />

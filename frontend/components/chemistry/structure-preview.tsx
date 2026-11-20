@@ -57,11 +57,11 @@ export const MolecularStructurePreview: React.FC<StructurePreviewProps> = ({
     try {
       if (!valid || !smiles.trim()) return null;
       if (cid && cid > 0) {
-        return `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/CID/${cid}/PNG?image_size=320x220`;
+        return `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/CID/${cid}/PNG?image_size=420x260`;
       }
       const encoded = encodeURIComponent(smiles.trim());
       if (!encoded) return null;
-      return `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/${encoded}/PNG?image_size=320x220`;
+      return `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/${encoded}/PNG?image_size=420x260`;
     } catch {
       return null;
     }
@@ -278,24 +278,24 @@ export const MolecularStructurePreview: React.FC<StructurePreviewProps> = ({
       </div>
 
       {/* Main Canvas Area */}
-      <div className="relative flex h-[180px] w-full items-center justify-center overflow-hidden rounded-lg bg-[#070A0F] border border-surface-border/40">
+      <div className="relative flex h-[200px] w-full items-center justify-center overflow-hidden rounded-lg bg-[#070A0F] border border-surface-border/40 p-2">
         {valid && smiles.trim() ? (
           <>
-            {/* PUBCHEM IMAGE RENDER */}
+            {/* PUBCHEM 2D STRUCTURE - Crisp True-Color Laboratory Card */}
             {!showWireframe && pubchemImageUrl && !imageError && (
-              <div className="relative h-full w-full flex items-center justify-center p-2">
+              <div className="relative h-full w-full flex items-center justify-center rounded-md bg-white p-2.5 shadow-sm border border-zinc-200/90">
                 {!imageLoaded && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-[#070A0F]/80">
-                    <Loader2 className="h-5 w-5 text-brand-400 animate-spin" />
+                  <div className="absolute inset-0 flex items-center justify-center bg-white/90 rounded-md">
+                    <Loader2 className="h-5 w-5 text-brand-600 animate-spin" />
                   </div>
                 )}
-                {/* Clean dark-mode inverted chemical drawing */}
+                {/* Official PubChem chemical rendering in true IUPAC color convention */}
                 <img
                   src={pubchemImageUrl}
                   alt={compoundName || "2D Structure"}
                   onLoad={() => setImageLoaded(true)}
                   onError={() => setImageError(true)}
-                  className={`max-h-full max-w-full object-contain filter invert contrast-125 brightness-110 drop-shadow-[0_0_10px_rgba(16,185,129,0.15)] transition-opacity duration-300 ${
+                  className={`max-h-full max-w-full object-contain transition-opacity duration-200 ${
                     imageLoaded ? "opacity-100" : "opacity-0"
                   }`}
                 />
@@ -399,9 +399,9 @@ export const MolecularStructurePreview: React.FC<StructurePreviewProps> = ({
           </div>
         )}
 
-        {/* Floating Chem Informatics pills */}
-        {valid && smiles.trim() && (
-          <div className="absolute bottom-2 left-2 flex flex-wrap gap-1 text-[9px] font-mono text-zinc-300">
+        {/* Floating Chem Informatics pills (in wireframe mode) */}
+        {valid && smiles.trim() && showWireframe && (
+          <div className="absolute bottom-2 left-2 flex flex-wrap gap-1 text-[9px] font-mono text-zinc-300 pointer-events-none">
             {molecularFormula && (
               <span className="rounded bg-surface-elevated/90 px-1.5 py-0.5 border border-surface-border font-semibold text-brand-300">
                 {molecularFormula}

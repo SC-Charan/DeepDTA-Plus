@@ -88,7 +88,9 @@ export const Sidebar: React.FC = () => {
           </div>
           {!collapsed && (
             <div className="min-w-0 flex flex-col">
-              <span className="text-sm font-semibold text-fg leading-none">DeepDTA</span>
+              <span className="text-sm font-bold tracking-tight text-fg leading-none">
+                deepdta<span className="text-brand-400 font-extrabold">+</span>
+              </span>
               <span className="text-[10px] text-fg-muted leading-none mt-0.5">Drug-Target Affinity</span>
             </div>
           )}

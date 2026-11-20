@@ -37,14 +37,44 @@ export class CompoundNotFoundError extends Error {
 }
 
 export async function fetchPubChemData(name: string): Promise<PubChemCompound> {
-  // 1. name -> CID
-  const cidRes = await fetch(`${PUG}/compound/name/${encodeURIComponent(name)}/cids/JSON`);
-  if (cidRes.status === 404) throw new CompoundNotFoundError(name);
-  if (!cidRes.ok) throw new Error(`PubChem returned an error (HTTP ${cidRes.status})`);
-  const cidData = await cidRes.json();
-  const cid = cidData.IdentifierList?.CID?.[0];
+  const clean = name.trim();
+  if (!clean) throw new Error("Search query cannot be empty");
+
+  let cid: number | undefined;
+
+  // 1a. If user passed a numeric CID directly (e.g. "2244" or "54670067")
+  if (/^\d+$/.test(clean)) {
+    cid = parseInt(clean, 10);
+  } else {
+    // 1b. Search by compound name
+    try {
+      const cidRes = await fetch(`${PUG}/compound/name/${encodeURIComponent(clean)}/cids/JSON`);
+      if (cidRes.ok) {
+        const cidData = await cidRes.json();
+        cid = cidData.IdentifierList?.CID?.[0];
+      }
+    } catch {
+      /* ignore */
+    }
+
+    // 1c. If name lookup returned nothing, try SMILES lookup
+    if (!cid || cid === 0) {
+      try {
+        const smilesRes = await fetch(`${PUG}/compound/smiles/${encodeURIComponent(clean)}/cids/JSON`);
+        if (smilesRes.ok) {
+          const smilesData = await smilesRes.json();
+          cid = smilesData.IdentifierList?.CID?.[0];
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+
   // PubChem uses CID 0 for "no match"
-  if (!cid) throw new CompoundNotFoundError(name);
+  if (!cid || cid === 0) {
+    throw new CompoundNotFoundError(clean);
+  }
 
   // 2. CID -> properties (incl. SMILES)
   const propRes = await fetch(
@@ -59,7 +89,7 @@ export async function fetchPubChemData(name: string): Promise<PubChemCompound> {
   const canonicalSMILES: string = props.CanonicalSMILES ?? props.ConnectivitySMILES ?? "";
   const isomericSMILES: string = props.IsomericSMILES ?? props.SMILES ?? "";
   if (!canonicalSMILES && !isomericSMILES) {
-    throw new Error(`PubChem found "${name}" but returned no SMILES for it`);
+    throw new Error(`PubChem found "${clean}" (CID ${cid}) but returned no SMILES structure.`);
   }
 
   // 3. synonyms (nice to have, never fatal)
@@ -70,6 +100,10 @@ export async function fetchPubChemData(name: string): Promise<PubChemCompound> {
     synonyms = synData.InformationList?.Information?.[0]?.Synonym?.slice(0, 8) ?? [];
   } catch {
     /* ignore */
+  }
+
+  if (synonyms.length === 0) {
+    synonyms = [clean];
   }
 
   return {
