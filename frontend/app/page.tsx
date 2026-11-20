@@ -1,251 +1,303 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import {
-  FlaskConical, Search, Layers, Cpu, BarChart2, Clock,
-  ArrowRight, Dna, ChevronRight,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { ArrowRight } from "lucide-react";
+import { Hero } from "@/components/home/hero";
+import { BINDING_STYLE } from "@/lib/binding";
+import { cn } from "@/lib/utils";
 
-const STATS = [
-  { value: "68",    label: "Drugs",          sub: "Davis kinase inhibitors" },
-  { value: "442",   label: "Proteins",       sub: "Kinase target sequences" },
-  { value: "30,056",label: "Training pairs", sub: "Measured Kd values" },
-  { value: "0.885", label: "CI score",       sub: "vs. 0.878 original paper" },
-];
-
-const FEATURES = [
-  {
-    icon: FlaskConical,
-    num: "01",
-    title: "Predict",
-    desc: "Input a SMILES string and protein sequence. Get a predicted pKd score and Kd in nM with a confidence estimate.",
-    href: "/predict",
-    cta: "Open predictor",
-    accent: "green",
-  },
-  {
-    icon: Search,
-    num: "02",
-    title: "Compound Search",
-    desc: "Look up any molecule by name via PubChem. Retrieve its formula, weight, and SMILES to use in predictions.",
-    href: "/search",
-    cta: "Search PubChem",
-    accent: "teal",
-  },
-  {
-    icon: Layers,
-    num: "03",
-    title: "Virtual Screening",
-    desc: "Upload a CSV of drug-protein pairs. Screen them in batch and rank by predicted binding affinity.",
-    href: "/batch",
-    cta: "Start screening",
-    accent: "blue",
-  },
-  {
-    icon: Cpu,
-    num: "04",
-    title: "Model Architecture",
-    desc: "Explore the dual-branch CNN built with PyTorch. View hyperparameters, the code skeleton, and enhancements over the original paper.",
-    href: "/model",
-    cta: "View architecture",
-    accent: "purple",
-  },
-  {
-    icon: BarChart2,
-    num: "05",
-    title: "Data & Results",
-    desc: "Compare our model against published baselines on the Davis and KIBA datasets. Includes honest cold-split generalisation scores.",
-    href: "/metrics",
-    cta: "See results",
-    accent: "orange",
-  },
-  {
-    icon: Clock,
-    num: "06",
-    title: "History",
-    desc: "Review past prediction sessions, revisit scores, and manage your saved inference runs.",
-    href: "/history",
-    cta: "Open history",
-    accent: "gray",
-  },
-];
-
-const accentMap: Record<string, { dot: string; badge: string; link: string }> = {
-  green:  { dot: "bg-green-500",   badge: "bg-green-500/10 text-green-400 border-green-500/20",   link: "text-green-400 hover:text-green-300" },
-  teal:   { dot: "bg-teal-500",    badge: "bg-teal-500/10 text-teal-400 border-teal-500/20",     link: "text-teal-400 hover:text-teal-300" },
-  blue:   { dot: "bg-blue-500",    badge: "bg-blue-500/10 text-blue-400 border-blue-500/20",     link: "text-blue-400 hover:text-blue-300" },
-  purple: { dot: "bg-purple-500",  badge: "bg-purple-500/10 text-purple-400 border-purple-500/20",link: "text-purple-400 hover:text-purple-300" },
-  orange: { dot: "bg-orange-500",  badge: "bg-orange-500/10 text-orange-400 border-orange-500/20",link: "text-orange-400 hover:text-orange-300" },
-  gray:   { dot: "bg-neutral-500", badge: "bg-neutral-500/10 text-neutral-400 border-neutral-500/20",link: "text-neutral-400 hover:text-neutral-300" },
-};
-
-const TEAM = [
-  { name: "Havisha",   roll: "245525733012" },
-  { name: "SaiCharan", roll: "245525733021" },
-  { name: "Abhinov",   roll: "245525733001" },
-  { name: "Rishitha",  roll: "245525733020" },
-  { name: "Hariharan", roll: "245525733002" },
-];
-
-export default function DashboardPage() {
+/* Reveals a block once as it scrolls into view. */
+function Reveal({ children, className }: { children: React.ReactNode; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [on, setOn] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return setOn(true);
+    const io = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) {
+        setOn(true);
+        io.disconnect();
+      }
+    }, { threshold: 0.2 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
   return (
-    <div className="space-y-10 animate-fade-in">
+    <div
+      ref={ref}
+      className={cn("transition-all duration-700", on ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0", className)}
+    >
+      {children}
+    </div>
+  );
+}
 
-      {/* ── Hero ── */}
-      <section className="hero-grid rounded-xl border border-surface-border bg-canvas-subtle p-8 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-brand-accent/5 via-transparent to-transparent pointer-events-none" />
-        <div className="relative max-w-2xl space-y-5">
-          <div className="flex items-center gap-2 flex-wrap">
-            <Badge variant="brand">Research Project · Team G1542</Badge>
-            <Badge variant="muted">PyTorch · RDKit · Next.js</Badge>
-          </div>
+function Panel({ note, children }: { note?: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-2xl border border-surface-border bg-surface-card p-6">
+      {note && <div className="mb-4 text-xs text-fg-subtle">{note}</div>}
+      {children}
+    </div>
+  );
+}
 
-          <div>
-            <h1 className="text-2xl font-semibold text-fg tracking-tight leading-snug">
-              DeepDTA — Drug-Target Binding Affinity
-            </h1>
-            <p className="mt-2 text-sm text-fg-muted leading-relaxed max-w-xl">
-              Predict how strongly a drug binds to a protein using a dual-branch convolutional neural network
-              trained on measured Kd values from the Davis kinase dataset. Built on the{" "}
-              <span className="text-fg">Öztürk et al. 2018</span> paper, extended with{" "}
-              <span className="text-fg">PyTorch</span> and <span className="text-fg">RDKit</span>.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <Link href="/predict">
-              <Button variant="glow" size="md" className="gap-2">
-                <FlaskConical className="h-4 w-4" />
-                Start predicting
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Button>
-            </Link>
-            <Link href="/search">
-              <Button variant="secondary" size="md" className="gap-2">
-                <Search className="h-4 w-4" />
-                Search a compound
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Stats ── */}
-      <section>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {STATS.map((s) => (
-            <div
-              key={s.label}
-              className="rounded-lg border border-surface-border bg-canvas-subtle p-4"
-            >
-              <div className="text-xl font-semibold font-mono text-fg">{s.value}</div>
-              <div className="text-xs font-medium text-fg mt-0.5">{s.label}</div>
-              <div className="text-[11px] text-fg-muted mt-0.5">{s.sub}</div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── Features ── */}
-      <section>
-        <div className="mb-5">
-          <h2 className="text-sm font-semibold text-fg">Application features</h2>
-          <p className="text-xs text-fg-muted mt-0.5">Six tools to explore drug-protein interactions.</p>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {FEATURES.map((f) => {
-            const c = accentMap[f.accent];
-            const Icon = f.icon;
-            return (
-              <Link
-                key={f.href}
-                href={f.href}
-                className="group rounded-lg border border-surface-border bg-canvas-subtle p-5 hover:border-surface-hover hover:bg-surface-elevated transition-all duration-150 cursor-pointer"
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <div className={`flex h-8 w-8 items-center justify-center rounded-md border ${c.badge}`}>
-                    <Icon className="h-4 w-4" />
-                  </div>
-                  <span className="text-lg font-black font-mono text-surface-border group-hover:text-surface-hover transition-colors">
-                    {f.num}
-                  </span>
-                </div>
-                <h3 className="text-sm font-semibold text-fg">{f.title}</h3>
-                <p className="mt-1 text-xs text-fg-muted leading-relaxed line-clamp-3">{f.desc}</p>
-                <div className={`mt-3 flex items-center gap-1 text-xs font-medium ${c.link} transition-colors`}>
-                  {f.cta}
-                  <ChevronRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* ── How it works ── */}
-      <section className="rounded-lg border border-surface-border bg-canvas-subtle">
-        <div className="border-b border-surface-border px-5 py-4">
-          <h2 className="text-sm font-semibold text-fg">How it works</h2>
-          <p className="text-xs text-fg-muted mt-0.5">One request round-trip from input to prediction.</p>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-surface-border">
-          {[
-            { n: "1", title: "Enter inputs",       desc: "SMILES string for the drug + amino acid sequence for the protein." },
-            { n: "2", title: "RDKit validation",   desc: "The molecule is validated and enriched with chemistry-aware features." },
-            { n: "3", title: "CNN inference",       desc: "Two Conv1D branches process drug and protein; dense layers predict pKd." },
-            { n: "4", title: "View result",         desc: "Score, Kd in nM, confidence index, and baseline comparison chart." },
-          ].map((step) => (
-            <div key={step.n} className="p-5">
-              <div className="mb-2 flex h-6 w-6 items-center justify-center rounded-full border border-surface-border text-[11px] font-bold text-fg-muted">
-                {step.n}
-              </div>
-              <div className="text-xs font-semibold text-fg">{step.title}</div>
-              <p className="mt-1 text-xs text-fg-muted leading-relaxed">{step.desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── Reference + Team ── */}
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Paper reference */}
-        <div className="rounded-lg border border-surface-border bg-canvas-subtle p-5 space-y-2">
-          <div className="text-xs font-semibold text-fg flex items-center gap-2">
-            <Dna className="h-3.5 w-3.5 text-green-400" />
-            Original Paper
-          </div>
-          <p className="text-xs text-fg-muted leading-relaxed">
-            Öztürk, H., Özgür, A., &amp; Ozkirimli, E. (2018).{" "}
-            <em className="text-fg">DeepDTA: deep drug-target binding affinity prediction.</em>{" "}
-            <span className="text-fg-subtle">Bioinformatics, 34(17), i821–i829.</span>
-          </p>
-          <a
-            href="https://doi.org/10.1093/bioinformatics/bty593"
-            target="_blank"
-            rel="noreferrer"
-            className="text-xs text-green-400 hover:text-green-300 transition-colors"
+function Row(props: {
+  title: string; body: string; href: string; cta: string; flip?: boolean; children: React.ReactNode;
+}) {
+  return (
+    <Reveal>
+      <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
+        <div className={props.flip ? "lg:order-2" : ""}>
+          <h2 className="text-3xl font-bold tracking-tight text-fg sm:text-4xl">{props.title}</h2>
+          <p className="mt-4 max-w-md text-base leading-relaxed text-fg-muted">{props.body}</p>
+          <Link
+            href={props.href}
+            className="group mt-6 inline-flex items-center gap-2 rounded-md border border-surface-border px-4 py-2.5 text-sm font-semibold text-fg transition-colors hover:border-brand-accent"
           >
-            doi:10.1093/bioinformatics/bty593 →
-          </a>
+            {props.cta}
+            <ArrowRight className="h-4 w-4 text-brand-accent transition-transform group-hover:translate-x-0.5" />
+          </Link>
         </div>
+        <div className={props.flip ? "lg:order-1" : ""}>{props.children}</div>
+      </div>
+    </Reveal>
+  );
+}
 
-        {/* Team */}
-        <div className="rounded-lg border border-surface-border bg-canvas-subtle p-5">
-          <div className="text-xs font-semibold text-fg mb-3">Team G1542</div>
-          <div className="space-y-1.5">
-            {TEAM.map((m) => (
-              <div key={m.roll} className="flex items-center justify-between">
-                <span className="text-xs text-fg">{m.name}</span>
-                <span className="font-mono text-[11px] text-fg-subtle">{m.roll}</span>
-              </div>
-            ))}
-          </div>
+/* ── small illustrations ── */
+function ScaleVisual() {
+  const segs = [
+    { w: 40, c: BINDING_STYLE["No Significant Binding"].color },
+    { w: 20, c: BINDING_STYLE["Moderate Binding"].color },
+    { w: 20, c: BINDING_STYLE["High Binding"].color },
+    { w: 20, c: BINDING_STYLE["Very High Binding"].color },
+  ];
+  const s = BINDING_STYLE["High Binding"];
+  return (
+    <Panel note="Example result">
+      <div className="mb-8 flex items-baseline justify-between">
+        <span className="rounded-full px-3 py-1 text-sm font-semibold" style={{ background: s.soft, color: s.color }}>
+          {s.label}
+        </span>
+        <span className="font-mono text-2xl font-semibold text-fg">pKd 7.8</span>
+      </div>
+      <div className="relative">
+        <div className="flex h-3 overflow-hidden rounded-full">
+          {segs.map((g, i) => <div key={i} style={{ width: `${g.w}%`, background: g.c }} />)}
         </div>
-      </section>
+        <div className="absolute -top-2 h-7 w-0.5 bg-white" style={{ left: `${((7.8 - 4) / 5) * 100}%` }} />
+        {[6, 7, 8].map((n) => (
+          <span key={n} className="absolute top-5 -translate-x-1/2 font-mono text-xs text-fg-subtle" style={{ left: `${((n - 4) / 5) * 100}%` }}>
+            {n}
+          </span>
+        ))}
+      </div>
+      <div className="mt-10 flex flex-wrap gap-x-5 gap-y-2 text-xs text-fg-muted">
+        {(Object.keys(BINDING_STYLE) as (keyof typeof BINDING_STYLE)[]).reverse().map((k) => (
+          <span key={k} className="inline-flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full" style={{ background: BINDING_STYLE[k].color }} />
+            {BINDING_STYLE[k].short}
+          </span>
+        ))}
+      </div>
+    </Panel>
+  );
+}
+
+function MoleculeVisual() {
+  const line = "#ACC0D3";
+  const lab = (x: number, y: number, t: string, c: string) => (
+    <g key={t + x}>
+      <circle cx={x} cy={y} r="10" fill="#080d0f" />
+      <text x={x} y={y + 4} textAnchor="middle" fontSize="12" fontWeight="700" fill={c}>{t}</text>
+    </g>
+  );
+  return (
+    <Panel note="Example: name in, structure and SMILES out">
+      <svg viewBox="0 0 240 150" className="mx-auto h-44 w-full max-w-sm" role="img" aria-label="2D structure of aspirin">
+        <g stroke={line} strokeWidth="2" strokeLinecap="round" fill="none">
+          <polygon points="80,57 104,71 104,99 80,113 56,99 56,71" />
+          <path d="M84,64 L99,73 M99,97 L84,106 M60,96 L60,74" strokeWidth="1.5" />
+          <path d="M104,71 L130,57 M130,57 L130,34 M134,57 L134,34 M130,57 L152,71" />
+          <path d="M104,99 L128,111 M138,113 L156,99 M156,99 L156,122 M160,99 L160,122 M156,99 L182,85" />
+        </g>
+        {lab(130, 30, "O", "#D396A6")}{lab(156, 74, "OH", "#D396A6")}
+        {lab(133, 113, "O", "#D396A6")}{lab(158, 126, "O", "#D396A6")}
+      </svg>
+      <div className="mt-4 rounded-md border border-surface-border bg-black px-3 py-2 font-mono text-xs text-fg-muted">
+        CC(=O)OC1=CC=CC=C1C(=O)O
+      </div>
+    </Panel>
+  );
+}
+
+function ScreeningVisual() {
+  const rows: [string, number, keyof typeof BINDING_STYLE][] = [
+    ["Compound A", 8.4, "Very High Binding"],
+    ["Compound B", 7.6, "High Binding"],
+    ["Compound C", 6.5, "Moderate Binding"],
+    ["Compound D", 5.2, "No Significant Binding"],
+  ];
+  return (
+    <Panel note="Example ranking">
+      <div className="space-y-4">
+        {rows.map(([n, v, k]) => (
+          <div key={n} className="flex items-center gap-4">
+            <span className="w-24 shrink-0 text-sm text-fg">{n}</span>
+            <div className="h-2 flex-1 overflow-hidden rounded-full bg-surface-overlay">
+              <div className="h-full rounded-full" style={{ width: `${(v / 9) * 100}%`, background: BINDING_STYLE[k].color }} />
+            </div>
+            <span className="w-16 shrink-0 text-right font-mono text-sm text-fg-muted">{v.toFixed(1)}</span>
+            <span className="hidden w-20 shrink-0 rounded-full px-2 py-0.5 text-center text-xs font-medium sm:block" style={{ background: BINDING_STYLE[k].soft, color: BINDING_STYLE[k].color }}>
+              {BINDING_STYLE[k].short}
+            </span>
+          </div>
+        ))}
+      </div>
+    </Panel>
+  );
+}
+
+function ArchitectureVisual() {
+  return (
+    <Panel>
+      <svg viewBox="0 0 360 150" className="h-40 w-full" role="img" aria-label="Drug and protein inputs combine into a binding affinity">
+        <g fill="none" stroke="#30525C" strokeWidth="2">
+          <path d="M104,38 C170,38 170,75 236,75" /><path d="M104,112 C170,112 170,75 236,75" />
+        </g>
+        <g fontSize="13" fontWeight="600" textAnchor="middle">
+          <rect x="14" y="20" width="90" height="36" rx="8" fill="#0e1619" stroke="#5484A4" />
+          <text x="59" y="43" fill="#ACC0D3">Drug</text>
+          <rect x="14" y="94" width="90" height="36" rx="8" fill="#0e1619" stroke="#F6C992" />
+          <text x="59" y="117" fill="#ACC0D3">Protein</text>
+          <rect x="236" y="54" width="110" height="42" rx="8" fill="#0e1619" stroke="#09A1A1" />
+          <text x="291" y="79" fill="#EEF3F7">Binding affinity</text>
+        </g>
+      </svg>
+    </Panel>
+  );
+}
+
+function DataVisual() {
+  const sets = [
+    { name: "Davis", pairs: 30056, meta: "68 drugs · 442 proteins", c: "#09A1A1" },
+    { name: "KIBA", pairs: 118254, meta: "2,111 drugs · 229 proteins", c: "#5484A4" },
+  ];
+  return (
+    <Panel note="Drug–protein pairs per dataset">
+      <div className="space-y-6">
+        {sets.map((d) => (
+          <div key={d.name}>
+            <div className="mb-2 flex items-baseline justify-between">
+              <span className="text-sm font-semibold text-fg">{d.name}</span>
+              <span className="font-mono text-sm text-fg-muted">{d.pairs.toLocaleString()}</span>
+            </div>
+            <div className="h-2.5 overflow-hidden rounded-full bg-surface-overlay">
+              <div className="h-full rounded-full" style={{ width: `${(d.pairs / 118254) * 100}%`, background: d.c }} />
+            </div>
+            <div className="mt-1.5 text-xs text-fg-subtle">{d.meta}</div>
+          </div>
+        ))}
+      </div>
+    </Panel>
+  );
+}
+
+function HistoryVisual() {
+  const items: [string, string, keyof typeof BINDING_STYLE][] = [
+    ["Compound A", "pKd 7.8", "High Binding"],
+    ["Compound B", "pKd 6.4", "Moderate Binding"],
+    ["Compound C", "pKd 5.1", "No Significant Binding"],
+  ];
+  return (
+    <Panel note="Example runs">
+      <ul className="relative space-y-5 border-l border-surface-border pl-6">
+        {items.map(([n, v, k]) => (
+          <li key={n} className="relative flex items-center justify-between">
+            <span className="absolute -left-[30px] h-2.5 w-2.5 rounded-full" style={{ background: BINDING_STYLE[k].color }} />
+            <span className="text-sm text-fg">{n}</span>
+            <span className="font-mono text-sm text-fg-muted">{v}</span>
+          </li>
+        ))}
+      </ul>
+    </Panel>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <div>
+      <Hero />
+
+      <div className="mx-auto max-w-6xl space-y-32 px-6 pb-32 pt-24">
+        <Reveal>
+          <h2 className="max-w-2xl text-3xl font-bold leading-tight tracking-tight text-fg sm:text-5xl">
+            From a compound name to a binding verdict.
+          </h2>
+        </Reveal>
+
+        <Row
+          title="Predict a binding"
+          body="Pick a compound and a protein target. You get the binding strength, the Kd in nM and a clear status you can read at a glance."
+          href="/predict" cta="Open Predict"
+        >
+          <ScaleVisual />
+        </Row>
+
+        <Row
+          title="Find any compound"
+          body="Search by name and see its 2D structure, formula, weight and SMILES, then send it straight to a prediction."
+          href="/search" cta="Search compounds" flip
+        >
+          <MoleculeVisual />
+        </Row>
+
+        <Row
+          title="Screen a whole library"
+          body="Upload a CSV of compounds, screen them against one target and see them ranked by binding strength, each with its status."
+          href="/batch" cta="Start screening"
+        >
+          <ScreeningVisual />
+        </Row>
+
+        <Row
+          title="See how it works"
+          body="A drug and a protein go in, a binding affinity comes out. The architecture page explains each part in detail."
+          href="/model" cta="View architecture" flip
+        >
+          <ArchitectureVisual />
+        </Row>
+
+        <Row
+          title="Data and results"
+          body="The datasets behind the predictions, and how they compare with published baselines, including the harder cold-split tests."
+          href="/metrics" cta="See results"
+        >
+          <DataVisual />
+        </Row>
+
+        <Row
+          title="Pick up where you left off"
+          body="Every prediction you run is saved in your browser, so you can revisit scores and compare compounds later."
+          href="/history" cta="Open history" flip
+        >
+          <HistoryVisual />
+        </Row>
+      </div>
+
+      <footer className="border-t border-surface-border px-6 py-10 text-center text-sm text-fg-subtle">
+        <div className="font-semibold text-fg-muted">DeepDTA +</div>
+        <div className="mt-1">Team G1542 · Havisha, SaiCharan, Abhinov, Rishitha, Hariharan</div>
+        <a
+          href="https://doi.org/10.1093/bioinformatics/bty593"
+          className="mt-2 inline-block hover:text-fg-muted"
+          target="_blank" rel="noopener noreferrer"
+        >
+          Based on Öztürk et al., 2018
+        </a>
+      </footer>
     </div>
   );
 }
