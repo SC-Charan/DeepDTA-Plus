@@ -21,15 +21,6 @@ import {
   Info,
   Printer,
 } from "lucide-react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
-} from "recharts";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -842,117 +833,6 @@ function PredictorStudioContent() {
                       <Printer className="h-3 w-3 text-cyan-400" />
                       Print / PDF Report
                     </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* KINOME CROSS-REACTIVITY & SELECTIVITY PROFILE */}
-              {result.selectivity && result.selectivity.length > 0 && (
-                <Card className="border-surface-border bg-surface-card">
-                  <CardHeader className="pb-1 pt-3 px-4">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-xs font-semibold flex items-center gap-1.5">
-                        <Activity className="h-3.5 w-3.5 text-cyan-400" />
-                        Kinome Selectivity &amp; Cross-Reactivity Panel
-                      </CardTitle>
-                      <span className="text-[10px] font-mono text-zinc-400">Davis Panel Cross-Screen</span>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="px-4 pb-3 pt-1 space-y-2">
-                    <p className="text-[11px] text-zinc-400">
-                      Multi-target selectivity profile for <strong className="text-zinc-200">{result.compound_name || "Compound"}</strong> across canonical kinase families.
-                    </p>
-                    <div className="space-y-1.5">
-                      {result.selectivity.map((item) => {
-                        const pct = Math.min(100, Math.max(0, ((item.pkd - 5.0) / (10.5 - 5.0)) * 100));
-                        const isHigh = item.pkd >= 7.5;
-                        const isMod = item.pkd >= 6.0 && item.pkd < 7.5;
-                        return (
-                          <div key={item.kinase} className="rounded-lg border border-surface-border/50 bg-surface-elevated/40 p-2 text-xs">
-                            <div className="flex items-center justify-between mb-1">
-                              <div className="flex items-center gap-1.5">
-                                <span className={`font-bold font-mono ${item.isPrimary ? "text-emerald-400" : "text-zinc-200"}`}>
-                                  {item.kinase}
-                                </span>
-                                <span className="text-[10px] text-zinc-400">({item.family})</span>
-                                {item.isPrimary && (
-                                  <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                                    Primary Query
-                                  </span>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-2 font-mono text-[11px]">
-                                <span className="text-zinc-300">
-                                  pK<sub>d</sub>: <strong>{item.pkd.toFixed(2)}</strong>
-                                </span>
-                                <span className={isHigh ? "text-emerald-400" : isMod ? "text-cyan-400" : "text-zinc-500"}>
-                                  K<sub>d</sub>: {item.kd_nM < 1000 ? `${item.kd_nM} nM` : `${(item.kd_nM / 1000).toFixed(1)} µM`}
-                                </span>
-                              </div>
-                            </div>
-                            <div className="h-1.5 w-full rounded-full bg-surface-border overflow-hidden">
-                              <div
-                                className={`h-full rounded-full transition-all duration-500 ${
-                                  isHigh ? "bg-gradient-to-r from-emerald-500 to-teal-400" : isMod ? "bg-cyan-500" : "bg-zinc-600"
-                                }`}
-                                style={{ width: `${pct}%` }}
-                              />
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* TARGET RESIDUE BINDING POCKET ATTENTION PROFILE */}
-              <Card className="border-surface-border">
-                <CardHeader className="pb-1 pt-3 px-4">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-xs font-semibold flex items-center gap-1.5">
-                      <Dna className="h-3.5 w-3.5 text-teal-400" />
-                      Predicted Binding Pocket Attention Profile
-                    </CardTitle>
-                    <span className="text-[10px] font-mono text-zinc-400">Target Focus Weights</span>
-                  </div>
-                </CardHeader>
-                <CardContent className="px-4 pb-3 pt-1">
-                  <div className="h-[120px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={result.residues} margin={{ top: 5, right: 5, left: -25, bottom: 5 }}>
-                        <XAxis dataKey="pos" tick={{ fill: "#64748B", fontSize: 8.5 }} />
-                        <YAxis domain={[0, 1]} tick={{ fill: "#64748B", fontSize: 8.5 }} />
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: "#111622",
-                            borderColor: "#1F293D",
-                            borderRadius: "6px",
-                            fontSize: "10px",
-                            color: "#fff",
-                          }}
-                          formatter={(val: any, name: any, item: any) => [
-                            `${val} (Residue ${item.payload.residue}${item.payload.pos})${
-                              item.payload.annotation ? ` • ${item.payload.annotation}` : ""
-                            }`,
-                            item.payload.isPocket ? "Active Pocket Focus" : "Scaffold Attention",
-                          ]}
-                        />
-                        <Bar dataKey="score" radius={[2, 2, 0, 0]}>
-                          {result.residues.map((r, idx) => (
-                            <Cell key={`res-${idx}`} fill={r.isPocket ? "#10B981" : "#1E293B"} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <div className="flex items-center justify-between text-[10px] text-zinc-400 pt-1 border-t border-surface-border/40">
-                    <span className="flex items-center gap-1">
-                      <span className="h-2 w-2 rounded bg-emerald-400" /> Pocket Residues
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <span className="h-2 w-2 rounded bg-surface-border" /> Scaffolding Residues
-                    </span>
                   </div>
                 </CardContent>
               </Card>
