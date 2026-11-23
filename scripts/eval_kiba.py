@@ -22,29 +22,19 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 import numpy as np
 
 from dtaplus.data import KIBA_ACTIVE_THRESHOLD, KibaData
-from dtaplus.metrics import compute_ci, compute_aupr
-from dtaplus.models.gbm import SimilarityGBM, MeanPredictor
+from dtaplus.metrics import concordance_index, mean_squared_error, aupr_score, rm2_score
+from dtaplus.models.gbm import MeanPredictor
+from sklearn.ensemble import HistGradientBoostingRegressor
+from sklearn.decomposition import TruncatedSVD
+from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 
 
 def compute_metrics(y_true: np.ndarray, y_pred: np.ndarray, threshold: float) -> dict:
     """Compute all benchmark metrics for a set of predictions."""
-    mse = float(np.mean((y_true - y_pred) ** 2))
-    ci = compute_ci(y_true, y_pred)
-
-    # Binary AUPR: active = KIBA score >= threshold
-    y_bin = (y_true >= threshold).astype(int)
-    aupr = compute_aupr(y_bin, y_pred)
-
-    # rm2 metric (DeepDTA paper uses this)
-    r2_pred = float(np.corrcoef(y_true, y_pred)[0, 1] ** 2)
-    r02_sum = 0.0
-    for _ in range(1):  # simplified rm2 as r2 * (1 - sqrt(|r2 - r02|))
-        k = float(np.dot(y_true, y_pred) / np.dot(y_pred, y_pred))
-        y_pred_scaled = k * y_pred
-        ss_res0 = np.sum((y_true - y_pred_scaled) ** 2)
-        ss_tot0 = np.sum((y_true - y_true.mean()) ** 2)
-        r02_sum = float(1 - ss_res0 / ss_tot0) if ss_tot0 > 0 else 0.0
-    rm2 = float(r2_pred * (1 - np.sqrt(np.abs(r2_pred - r02_sum))))
+    mse = float(mean_squared_error(y_true, y_pred))
+    ci = float(concordance_index(y_true, y_pred))
+    rm2 = float(rm2_score(y_true, y_pred))
+    aupr = float(aupr_score(y_true, y_pred, threshold=threshold))
 
     return {
         "ci": round(ci, 4),
@@ -98,14 +88,40 @@ def main() -> None:
     print(f"  CI={mean_metrics['ci']}  MSE={mean_metrics['mse']}  "
           f"rm2={mean_metrics['r2m']}  AUPR={mean_metrics['aupr']}")
 
-    # ----- SimilarityGBM -----
-    print("\n--- SimilarityGBM (single seed) ---")
+    # ----- Featurize with 224-dim pipeline -----
+    print("\n--- Featurizing KIBA (224 dimensions) ---")
+    d_tfidf = TfidfVectorizer(analyzer="char", ngram_range=(1, 4), min_df=2)
+    smi_tfidf = d_tfidf.fit_transform(data.drug_smiles).astype(float)
+    xd = TruncatedSVD(64, random_state=42).fit_transform(smi_tfidf)
+    sd = TruncatedSVD(96, random_state=42).fit_transform(data.dsim)
+    d_feat = np.hstack([sd, xd])  # 160 dims
+
+    p_count = CountVectorizer(analyzer="char", ngram_range=(3, 3), lowercase=False)
+    seq_counts = p_count.fit_transform(data.protein_sequences).astype(float)
+    xp = TruncatedSVD(32, random_state=42).fit_transform(seq_counts)
+    st = TruncatedSVD(32, random_state=42).fit_transform(data.tsim)
+    p_feat = np.hstack([st, xp])  # 64 dims
+
+    x_train = np.hstack([d_feat[data.ri[train_idx]], p_feat[data.ci[train_idx]]])
+    x_test = np.hstack([d_feat[data.ri[test_idx]], p_feat[data.ci[test_idx]]])
+    y_train = data.y[train_idx]
+    print(f"  Feature shapes: train={x_train.shape}, test={x_test.shape}")
+
+    # ----- Single Tuned GBM -----
+    print("\n--- Tuned HistGBM (single seed) ---")
     t1 = time.time()
-    gbm = SimilarityGBM(random_state=42)
-    gbm.fit_dataset(data, train_idx, split_type="random")
+    hgb = HistGradientBoostingRegressor(
+        max_iter=300,
+        max_leaf_nodes=63,
+        learning_rate=0.08,
+        l2_regularization=2.0,
+        min_samples_leaf=20,
+        random_state=42,
+    )
+    hgb.fit(x_train, y_train)
     fit_time = round(time.time() - t1, 2)
     print(f"  Fitted in {fit_time}s")
-    y_pred_gbm = gbm.predict_indices(data, test_idx)
+    y_pred_gbm = hgb.predict(x_test)
     gbm_metrics = compute_metrics(y_test, y_pred_gbm, KIBA_ACTIVE_THRESHOLD)
     gbm_metrics["fit_time_sec"] = fit_time
     gbm_metrics["num_train"] = int(len(train_idx))
@@ -114,18 +130,25 @@ def main() -> None:
           f"rm2={gbm_metrics['r2m']}  AUPR={gbm_metrics['aupr']}")
 
     # ----- DeepDTA+ 3-seed Ensemble -----
-    print("\n--- DeepDTA+ 3-Seed GBM Ensemble ---")
+    print("\n--- DeepDTA+ 3-Seed Tuned Ensemble ---")
     t2 = time.time()
-    all_preds = []
-    for seed in [42, 43, 44]:
-        g = SimilarityGBM(random_state=seed)
-        g.fit_dataset(data, train_idx, split_type="random")
-        all_preds.append(g.predict_indices(data, test_idx))
+    all_preds = [y_pred_gbm]
+    for seed in [43, 44]:
+        g = HistGradientBoostingRegressor(
+            max_iter=300,
+            max_leaf_nodes=63,
+            learning_rate=0.08,
+            l2_regularization=2.0,
+            min_samples_leaf=20,
+            random_state=seed,
+        )
+        g.fit(x_train, y_train)
+        all_preds.append(g.predict(x_test))
     y_pred_ens = np.mean(all_preds, axis=0)
     ens_time = round(time.time() - t2, 2)
-    print(f"  Fitted 3 seeds in {ens_time}s")
+    print(f"  Fitted remaining seeds in {ens_time}s")
     ens_metrics = compute_metrics(y_test, y_pred_ens, KIBA_ACTIVE_THRESHOLD)
-    ens_metrics["fit_time_sec"] = ens_time
+    ens_metrics["fit_time_sec"] = fit_time + ens_time
     print(f"  CI={ens_metrics['ci']}  MSE={ens_metrics['mse']}  "
           f"rm2={ens_metrics['r2m']}  AUPR={ens_metrics['aupr']}")
 

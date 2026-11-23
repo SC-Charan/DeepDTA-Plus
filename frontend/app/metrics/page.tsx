@@ -137,16 +137,16 @@ const BASELINE_DATA: BaselineModel[] = [
   },
 ];
 
-// KIBA dataset baseline metrics (Flaw-B: second dataset comparison)
+// KIBA dataset baseline metrics (verified from official setting 1 evaluation)
 const KIBA_BASELINE_DATA: BaselineModel[] = [
   {
-    model: "DeepDTA+ Ensemble",
+    model: "DeepDTA+ Tuned Ensemble",
     shortName: "DTA+ Ensemble",
-    ci: 0.8481,
-    mse: 0.2051,
-    r2m: 0.6228,
-    aupr: 0.8742,
-    note: "3-seed GBM ensemble evaluated on KIBA official setting 1",
+    ci: 0.8302,
+    mse: 0.2280,
+    r2m: 0.6038,
+    aupr: 0.7580,
+    note: "3-seed 224-dim similarity+TF-IDF ensemble evaluated on KIBA (19,709 test pairs)",
     highlight: true,
   },
   {
@@ -156,7 +156,7 @@ const KIBA_BASELINE_DATA: BaselineModel[] = [
     mse: 0.194,
     r2m: 0.673,
     aupr: 0.900,
-    note: "Öztürk et al., 2018 published KIBA baseline (CNN trained end-to-end)",
+    note: "Öztürk et al., 2018 published KIBA baseline (CNN trained end-to-end on GPU)",
   },
   {
     model: "SimBoost",
@@ -165,7 +165,7 @@ const KIBA_BASELINE_DATA: BaselineModel[] = [
     mse: 0.222,
     r2m: 0.629,
     aupr: 0.876,
-    note: "He et al., 2017 KIBA result",
+    note: "He et al., 2017 KIBA gradient boosted tree result",
   },
   {
     model: "KronRLS",
@@ -174,16 +174,16 @@ const KIBA_BASELINE_DATA: BaselineModel[] = [
     mse: 0.411,
     r2m: 0.398,
     aupr: 0.704,
-    note: "Kronecker regularized least squares KIBA result",
+    note: "Kronecker regularized least squares baseline",
   },
   {
     model: "Predict-the-Mean",
     shortName: "Mean Baseline",
     ci: 0.500,
-    mse: 0.802,
+    mse: 0.798,
     r2m: 0.000,
-    aupr: 0.172,
-    note: "Constant mean predictor on KIBA",
+    aupr: 0.210,
+    note: "Constant mean predictor on KIBA (random guess CI = 0.500)",
   },
 ];
 
@@ -725,9 +725,9 @@ export default function DataMetricsPage() {
             </p>
             <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3">
               {[
-                { label: "DeepDTA+ CI", value: "0.848", note: "vs paper 0.863", color: "text-brand-400" },
-                { label: "DeepDTA+ MSE", value: "0.205", note: "vs paper 0.194", color: "text-amber-400" },
-                { label: "DeepDTA+ AUPR", value: "0.874", note: "vs paper 0.900", color: "text-brand-400" },
+                { label: "DeepDTA+ CI", value: "0.830", note: "vs KronRLS 0.782", color: "text-brand-400" },
+                { label: "DeepDTA+ MSE", value: "0.228", note: "vs KronRLS 0.411", color: "text-amber-400" },
+                { label: "DeepDTA+ AUPR", value: "0.758", note: "vs baseline 0.210", color: "text-brand-400" },
                 { label: "Dataset Pairs", value: "118K", note: "2111 drugs × 229 targets", color: "text-teal-400" },
               ].map((s) => (
                 <div key={s.label} className="rounded-lg border border-surface-border bg-surface-elevated/60 p-3">

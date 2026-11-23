@@ -174,5 +174,43 @@
   },
   "uncertainty_analysis": {
     "random_split_spearman_error_uncertainty": 0.49588266877184267
+  },
+  "kiba_random_split": {
+    "predict_the_mean": {
+      "ci": 0.5,
+      "mse": 0.7981,
+      "r2m": 0.0,
+      "aupr": 0.2099
+    },
+    "kronrls_paper": {
+      "ci": 0.782,
+      "mse": 0.411,
+      "r2m": 0.398,
+      "aupr": 0.704,
+      "source": "Pahikkala et al. (2014) as cited in Öztürk et al. (2018)"
+    },
+    "simboost_paper": {
+      "ci": 0.836,
+      "mse": 0.222,
+      "r2m": 0.629,
+      "aupr": 0.876,
+      "source": "He et al. (2017) as cited in Öztürk et al. (2018)"
+    },
+    "deepdta_paper_cnn": {
+      "ci": 0.863,
+      "mse": 0.194,
+      "r2m": 0.673,
+      "aupr": 0.900,
+      "source": "DeepDTA paper (Öztürk et al., 2018)"
+    },
+    "dtaplus_tuned_ensemble": {
+      "ci": 0.8302,
+      "mse": 0.2280,
+      "r2m": 0.6038,
+      "aupr": 0.7580,
+      "num_train": 98545,
+      "num_test": 19709,
+      "feature_dims": 224
+    }
   }
 }

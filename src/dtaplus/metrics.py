@@ -183,3 +183,9 @@ def compute_all_metrics(
         "aupr": aupr_score(y_true, y_pred, threshold=threshold),
         "spearman": spearman_correlation(y_true, y_pred),
     }
+
+
+# Convenience aliases
+compute_ci = concordance_index
+compute_aupr = aupr_score
+compute_mse = mean_squared_error
