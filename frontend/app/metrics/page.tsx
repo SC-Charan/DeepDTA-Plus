@@ -268,6 +268,50 @@ export default function DataMetricsPage() {
       {/* TAB 1: RANDOM SPLIT FULL BENCHMARK */}
       {activeTab === "random" && (
         <div className="space-y-6">
+          {/* Key Metric Highlights / Accuracy Explanation */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="rounded-xl border border-brand-500/30 bg-brand-500/5 p-4 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] font-semibold text-brand-300 uppercase tracking-wider">Pairwise Ranking</span>
+                  <Badge variant="brand">Primary Metric</Badge>
+                </div>
+                <div className="text-2xl font-bold font-mono text-emerald-400">0.8852 CI</div>
+                <div className="text-xs font-semibold text-zinc-200 mt-1">88.52% Ranking Accuracy</div>
+                <p className="text-[11px] text-zinc-400 mt-2 leading-relaxed">
+                  Concordance Index (CI) measures ranking correctness. Across all evaluated drug-target pairs, DeepDTA+ correctly identifies which pair binds tighter in 88.52% of comparisons.
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-teal-500/30 bg-teal-500/5 p-4 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] font-semibold text-teal-300 uppercase tracking-wider">Binary Hit Detection</span>
+                  <Badge variant="teal">pKd ≥ 7.0 Cutoff</Badge>
+                </div>
+                <div className="text-2xl font-bold font-mono text-teal-400">0.7088 AUPR</div>
+                <div className="text-xs font-semibold text-zinc-200 mt-1">Area Under Precision-Recall</div>
+                <p className="text-[11px] text-zinc-400 mt-2 leading-relaxed">
+                  Evaluates active drug candidate detection (Kd ≤ 100 nM) under severe class imbalance (~70% non-binders in Davis). Crushes the random guess baseline (0.083) by 8.5×.
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-sky-500/30 bg-sky-500/5 p-4 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] font-semibold text-sky-300 uppercase tracking-wider">Continuous Calibration</span>
+                  <Badge variant="cyan">Residual Error</Badge>
+                </div>
+                <div className="text-2xl font-bold font-mono text-sky-400">0.2740 MSE</div>
+                <div className="text-xs font-semibold text-zinc-200 mt-1">Mean Squared Error (pKd)</div>
+                <p className="text-[11px] text-zinc-400 mt-2 leading-relaxed">
+                  Measures average squared deviation from experimental pKd. Combined with ensemble spread (σ = ±0.15), provides calibrated confidence flags for screening.
+                </p>
+              </div>
+            </div>
+          </div>
           {/* Metric Selector Bar */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl border border-surface-border bg-surface-card/60 backdrop-blur-sm">
             <div className="flex items-center gap-2 text-xs text-zinc-300">

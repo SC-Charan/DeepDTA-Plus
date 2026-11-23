@@ -17,7 +17,9 @@ logger = logging.getLogger(__name__)
 class DTAEnsemble:
     """
     Ensemble model combining multiple gradient boosting seeds and/or DeepDTA CNN.
-    Combines member predictions via uniform averaging. Returns point estimate and uncertainty spread.
+    Uses inverse-MSE weighting on the validation set so lower-error members
+    contribute more to the final prediction, reducing overall MSE.
+    Falls back to uniform weights when no validation set is provided.
     """
 
     def __init__(
@@ -60,6 +62,46 @@ class DTAEnsemble:
         except Exception as e:
             logger.warning("Could not load CNN checkpoint (%s): %s", self.cnn_checkpoint_path, e)
 
+    def _compute_val_weights(
+        self,
+        data: DavisData,
+        val_idx: np.ndarray,
+    ) -> np.ndarray:
+        """
+        Computes inverse-MSE weights from validation set performance.
+        Members with lower validation MSE receive proportionally higher weight.
+        Evaluates on up to 500 representative pairs for sub-second initialization.
+        """
+        eval_idx = val_idx[:500] if len(val_idx) > 500 else val_idx
+        val_mses: list[float] = []
+
+        for model in self.gbm_models:
+            preds = model.predict_indices(data, eval_idx)
+            mse = float(np.mean((preds - data.y[eval_idx]) ** 2))
+            val_mses.append(mse)
+            logger.info("GBM seed val MSE: %.4f", mse)
+
+        if self.cnn_available and self.cnn_model is not None:
+            pairs = [
+                (data.drug_smiles[data.ri[idx]], data.protein_sequences[data.ci[idx]])
+                for idx in eval_idx
+            ]
+            cnn_preds = np.array(self._cnn_predict_batch(pairs))
+            cnn_mse = float(np.mean((cnn_preds - data.y[eval_idx]) ** 2))
+            val_mses.append(cnn_mse)
+            logger.info("CNN val MSE: %.4f", cnn_mse)
+
+        mse_arr = np.array(val_mses, dtype=float)
+        # Inverse-MSE weighting: lower MSE → higher weight
+        inv_mse = 1.0 / np.maximum(mse_arr, 1e-8)
+        weights = inv_mse / inv_mse.sum()
+        logger.info(
+            "Inverse-MSE ensemble weights: %s (members MSE: %s)",
+            np.round(weights, 4),
+            np.round(mse_arr, 4),
+        )
+        return weights
+
     def fit_dataset(
         self,
         data: DavisData,
@@ -67,14 +109,25 @@ class DTAEnsemble:
         val_idx: np.ndarray | None = None,
         split_type: str = "random",
     ) -> DTAEnsemble:
-        """Fits all member models on training data and initializes ensemble weights."""
+        """
+        Fits all member models on training data.
+        If val_idx is provided, computes inverse-MSE weights from validation performance.
+        Falls back to uniform weights when val_idx is None.
+        """
         for i, model in enumerate(self.gbm_models):
             model.fit_dataset(data, train_idx, split_type=split_type)
 
         self._load_cnn()
 
         num_members = len(self.gbm_models) + (1 if self.cnn_available else 0)
-        self.weights = np.ones(num_members) / num_members
+
+        if val_idx is not None and len(val_idx) > 0:
+            self.weights = self._compute_val_weights(data, val_idx)
+        else:
+            # Uniform fallback when no validation set is available
+            self.weights = np.ones(num_members) / num_members
+            logger.info("No val_idx provided — using uniform ensemble weights.")
+
         self.is_fitted = True
         return self
 
@@ -91,18 +144,28 @@ class DTAEnsemble:
             pred = self.cnn_model(s_t, p_t).item()
         return float(pred)
 
-    def _cnn_predict_batch(self, pairs: list[tuple[str, str]]) -> list[float]:
-        """Runs batch inference using PyTorch CNN."""
+    def _cnn_predict_batch(self, pairs: list[tuple[str, str]], batch_size: int = 128) -> list[float]:
+        """Runs batch inference using PyTorch CNN with mini-batching."""
+        if not pairs:
+            return []
         import torch
 
         device = next(self.cnn_model.parameters()).device
-        s_tensors = [encode_smiles(smi) for smi, _ in pairs]
-        p_tensors = [encode_protein(seq) for _, seq in pairs]
-        s_batch = torch.from_numpy(np.stack(s_tensors)).long().to(device)
-        p_batch = torch.from_numpy(np.stack(p_tensors)).long().to(device)
-        with torch.no_grad():
-            preds = self.cnn_model(s_batch, p_batch).cpu().numpy().tolist()
-        return preds
+        all_preds: list[float] = []
+
+        for i in range(0, len(pairs), batch_size):
+            chunk = pairs[i : i + batch_size]
+            s_tensors = [encode_smiles(smi) for smi, _ in chunk]
+            p_tensors = [encode_protein(seq) for _, seq in chunk]
+            s_batch = torch.from_numpy(np.stack(s_tensors)).long().to(device)
+            p_batch = torch.from_numpy(np.stack(p_tensors)).long().to(device)
+            with torch.no_grad():
+                preds = self.cnn_model(s_batch, p_batch).squeeze(-1).cpu().numpy().tolist()
+                if isinstance(preds, (float, int)):
+                    all_preds.append(float(preds))
+                else:
+                    all_preds.extend(float(p) for p in preds)
+        return all_preds
 
     def predict_indices(
         self,

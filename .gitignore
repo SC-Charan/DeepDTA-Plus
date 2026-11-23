@@ -4,5 +4,8 @@ __pycache__/
 *.egg-info/
 .pytest_cache/
 .ruff_cache/
+*.tsbuildinfo
+.next/
+node_modules/
 # Allow tracking of best checkpoint weights in git
 # *.pt

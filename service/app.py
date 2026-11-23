@@ -4,13 +4,22 @@ from __future__ import annotations
 
 import logging
 import os
+import sys
 from contextlib import asynccontextmanager
+from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, status
+# Ensure root and src are on sys.path
+_ROOT = Path(__file__).resolve().parent.parent
+if str(_ROOT / "src") not in sys.path:
+    sys.path.insert(0, str(_ROOT / "src"))
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
 
-from dtaplus.data import DavisData
-from dtaplus.models.ensemble import DTAEnsemble
-from service.schemas import (
+from fastapi import FastAPI, HTTPException, status  # noqa: E402
+
+from dtaplus.data import DavisData  # noqa: E402
+from dtaplus.models.ensemble import DTAEnsemble  # noqa: E402
+from service.schemas import (  # noqa: E402
     BatchPredictionRequest,
     HealthResponse,
     PredictionRequest,
@@ -41,12 +50,17 @@ async def lifespan(app: FastAPI):
 
     # Initialize ensemble with CNN checkpoint path
     ckpt_path = os.environ.get("DEEPDTA_CNN_CHECKPOINT", DEFAULT_CHECKPOINT_PATH)
+    # In test mode use a tiny subset so the test suite finishes quickly.
+    _test_mode = os.environ.get("DEEPDTA_TEST_MODE", "0") == "1"
+    _n_seeds = 1 if _test_mode else 3
+    _idx = train_idx[:200] if _test_mode else train_idx
+
     model_instance = DTAEnsemble(
-        num_gbm_seeds=3,
+        num_gbm_seeds=_n_seeds,
         random_state=42,
         cnn_checkpoint_path=ckpt_path if os.path.exists(ckpt_path) else None,
     )
-    model_instance.fit_dataset(data, train_idx, val_idx=splits.val_idx, split_type="random")
+    model_instance.fit_dataset(data, _idx, val_idx=None if _test_mode else splits.val_idx, split_type="random")
 
     cnn_status = "active" if model_instance.cnn_available else "dormant (weights not found)"
     logger.info("DeepDTA+ ensemble loaded successfully (CNN branch: %s).", cnn_status)

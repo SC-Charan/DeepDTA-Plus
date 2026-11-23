@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   ChevronDown,
   Info,
+  Printer,
 } from "lucide-react";
 import {
   BarChart,
@@ -86,6 +87,14 @@ function PredictorStudioContent() {
 
   // Workbench view toggle: "drug" vs "protein" tabs to save vertical space
   const [activeWorkbenchTab, setActiveWorkbenchTab] = useState<"drug" | "protein">("drug");
+
+  // Sync URL search params dynamically if redirected from /search
+  useEffect(() => {
+    if (urlSmiles) {
+      setSmiles(urlSmiles);
+      if (urlName) setCompoundName(urlName);
+    }
+  }, [urlSmiles, urlName]);
 
   // Inference & UI state
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -738,6 +747,15 @@ function PredictorStudioContent() {
                     >
                       <Download className="h-3 w-3" />
                       Export (.json)
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => typeof window !== "undefined" && window.print()}
+                      className="gap-1.5 text-xs h-7"
+                    >
+                      <Printer className="h-3 w-3 text-cyan-400" />
+                      Print / PDF Report
                     </Button>
                   </div>
                 </CardContent>

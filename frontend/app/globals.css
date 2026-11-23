@@ -271,3 +271,18 @@ table { border-collapse: collapse; }
     animation: none !important;
   }
 }
+
+/* Print Optimization for Lab Reports */
+@media print {
+  header, nav, .no-print, button, a[href^="/"] {
+    display: none !important;
+  }
+  body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+  }
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+}

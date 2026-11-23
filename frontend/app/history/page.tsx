@@ -18,6 +18,7 @@ import {
   Eye,
   CheckCircle2,
   X,
+  Printer,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
@@ -149,6 +150,15 @@ export default function HistoryPage() {
               >
                 <Download className="h-3.5 w-3.5" />
                 Export History (.json)
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => typeof window !== "undefined" && window.print()}
+                className="text-xs gap-1.5"
+              >
+                <Printer className="h-3.5 w-3.5 text-cyan-400" />
+                Print / PDF
               </Button>
               <Button
                 variant="outline"
