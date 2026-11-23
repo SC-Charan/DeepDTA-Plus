@@ -156,17 +156,19 @@ class DTAEnsemble:
         over- or under-prediction bias without altering model weights or ranking order.
         The CI (concordance index) is preserved exactly because isotonic regression
         is order-preserving by construction.
+        Evaluates on up to 500 representative pairs for sub-second initialization.
         """
-        member_preds = [m.predict_indices(data, val_idx) for m in self.gbm_models]
+        eval_idx = val_idx[:500] if len(val_idx) > 500 else val_idx
+        member_preds = [m.predict_indices(data, eval_idx) for m in self.gbm_models]
         if self.cnn_available and self.cnn_model is not None:
             pairs = [
                 (data.drug_smiles[data.ri[i]], data.protein_sequences[data.ci[i]])
-                for i in val_idx
+                for i in eval_idx
             ]
             cnn_preds = np.array(self._cnn_predict_batch(pairs))
             member_preds.append(cnn_preds)
         raw_mean, _ = compute_ensemble_uncertainty(member_preds, weights=self.weights)
-        y_val = data.y[val_idx]
+        y_val = data.y[eval_idx]
         self.calibrator = IsotonicRegression(out_of_bounds="clip")
         self.calibrator.fit(raw_mean, y_val)
         cal_preds = self.calibrator.predict(raw_mean)
@@ -174,7 +176,7 @@ class DTAEnsemble:
         cal_mse = float(np.mean((cal_preds - y_val) ** 2))
         logger.info(
             "Isotonic calibrator fitted on %d val pairs: raw val MSE=%.4f → calibrated val MSE=%.4f",
-            len(val_idx), raw_mse, cal_mse,
+            len(eval_idx), raw_mse, cal_mse,
         )
 
     def _cnn_predict_pair(self, smiles: str, sequence: str) -> float:
