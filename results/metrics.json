@@ -211,6 +211,17 @@
       "num_train": 98545,
       "num_test": 19709,
       "feature_dims": 224
+    },
+    "dtaplus_neural_2tower": {
+      "ci": 0.8789,
+      "mse": 0.1434,
+      "r2m": 0.7687,
+      "aupr": 0.8387,
+      "spearman": 0.8727,
+      "epochs": 15,
+      "checkpoint": "results/checkpoints/deepdta_kiba_neural_best.pt",
+      "num_train": 98545,
+      "num_test": 19709
     }
   }
 }
