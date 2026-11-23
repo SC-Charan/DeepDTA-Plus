@@ -24,6 +24,15 @@ export interface ResidueInteraction {
   residue: string;
   score: number; // 0 to 1 normalized interaction attention
   isPocket?: boolean;
+  annotation?: string; // Biological pocket annotation e.g. Gatekeeper, Hinge, DFG
+}
+
+export interface KinaseSelectivityItem {
+  kinase: string;
+  family: string;
+  pkd: number;
+  kd_nM: number;
+  isPrimary?: boolean;
 }
 
 export interface PredictionResult {
@@ -43,6 +52,7 @@ export interface PredictionResult {
   is_mock?: boolean;
   baselines: BaselineComparison[];
   residues: ResidueInteraction[];
+  selectivity?: KinaseSelectivityItem[];
 }
 
 export interface BatchItem {

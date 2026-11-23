@@ -1,4 +1,11 @@
-import { ChemicalPreset, ProteinPreset, PredictionResult, BaselineComparison, ResidueInteraction } from "./types";
+import {
+  ChemicalPreset,
+  ProteinPreset,
+  PredictionResult,
+  BaselineComparison,
+  ResidueInteraction,
+  KinaseSelectivityItem,
+} from "./types";
 import { categorizeBinding } from "./utils";
 
 export const SAMPLE_COMPOUNDS: ChemicalPreset[] = [
@@ -258,27 +265,122 @@ export function generateMockPrediction(
     explanation = `Negligible affinity predicted (pKd ≈ 5.0 baseline floor). Steric clashes or lack of donor-acceptor alignment in target domain.`;
   }
 
-  // Generate 25 sample residue interactions
+  // Generate biochemically-grounded residue focus scores
+  // Identifies canonical kinase ATP-binding pocket, gatekeeper, hinge, and DFG motif residues
   const sampleResidues: ResidueInteraction[] = [];
   const cleanSeq = proteinSeq.replace(/[\s\r\n\t]/g, "").toUpperCase();
-  const step = Math.max(1, Math.floor(cleanSeq.length / 30));
 
-  for (let i = 0; i < Math.min(30, cleanSeq.length); i++) {
+  const isEgfr = tName.includes("egfr") || cleanSeq.includes("EEKKVCQGTSNKLTQLGTFE") || cleanSeq.includes("MRPSGTAGAALLALLAALCP");
+  const isAbl1 = tName.includes("abl1") || cleanSeq.includes("MLEICLKLV") || cleanSeq.includes("GPSENDPNLFVALYDFVASGD");
+  const isBraf = tName.includes("braf") || cleanSeq.includes("HGDVAVKMLNVTAPTPQQLQ") || cleanSeq.includes("MAALSGGGGGGAEPGQALFN");
+
+  // Biochemical anchor definition for canonical kinases
+  type KnownPocketRes = { pos: number; residue: string; score: number; annotation: string };
+  const knownPockets: KnownPocketRes[] = isEgfr
+    ? [
+        { pos: 718, residue: "L", score: 0.82, annotation: "P-Loop Floor (Leu718)" },
+        { pos: 745, residue: "K", score: 0.94, annotation: "Catalytic Lys745 (Salt Bridge to Glu762)" },
+        { pos: 762, residue: "E", score: 0.88, annotation: "αC-Helix (Glu762)" },
+        { pos: 790, residue: "T", score: 0.98, annotation: "Gatekeeper Thr790 (Resistance Hotspot / T790M)" },
+        { pos: 791, residue: "Q", score: 0.84, annotation: "Hinge Region (Gln791)" },
+        { pos: 793, residue: "M", score: 0.96, annotation: "Hinge Met793 (Backbone H-Bond Donor/Acceptor)" },
+        { pos: 844, residue: "L", score: 0.87, annotation: "Hydrophobic Pocket Floor (Leu844)" },
+        { pos: 855, residue: "D", score: 0.92, annotation: "DFG Motif Asp855 (Catalytic Mg2+ Coordinator)" },
+      ]
+    : isAbl1
+    ? [
+        { pos: 248, residue: "G", score: 0.81, annotation: "P-Loop Gly248" },
+        { pos: 271, residue: "K", score: 0.92, annotation: "Catalytic Lys271 (ATP Phosphate Binding)" },
+        { pos: 286, residue: "E", score: 0.86, annotation: "αC-Helix Glu286" },
+        { pos: 315, residue: "T", score: 0.99, annotation: "Gatekeeper Thr315 (Classic T315I Mutation Site)" },
+        { pos: 318, residue: "M", score: 0.95, annotation: "Hinge Met318 (Backbone Interaction)" },
+        { pos: 381, residue: "D", score: 0.90, annotation: "DFG Motif Asp381 (Active Conformation)" },
+      ]
+    : isBraf
+    ? [
+        { pos: 471, residue: "V", score: 0.84, annotation: "P-Loop Val471" },
+        { pos: 483, residue: "K", score: 0.93, annotation: "Catalytic Lys483" },
+        { pos: 501, residue: "E", score: 0.87, annotation: "αC-Helix Glu501" },
+        { pos: 529, residue: "T", score: 0.97, annotation: "Gatekeeper Thr529" },
+        { pos: 594, residue: "D", score: 0.91, annotation: "DFG Motif Asp594" },
+      ]
+    : [];
+
+  const pocketMap = new Map<number, KnownPocketRes>();
+  for (const kp of knownPockets) {
+    pocketMap.set(kp.pos, kp);
+  }
+
+  // Sample 25 evenly-spaced points along the sequence + inject known pocket residues
+  const step = Math.max(1, Math.floor(cleanSeq.length / 24));
+  for (let i = 0; i < Math.min(24, cleanSeq.length); i++) {
     const pos = (i + 1) * step;
     const resChar = cleanSeq[(pos - 1) % cleanSeq.length] || "A";
-    const resHash = (hash + i * 43) % 100;
-    const score = Math.round((resHash / 100) * 100) / 100;
+    const baselineScore = Math.round((0.15 + ((hash + i * 19) % 35) / 100) * 100) / 100;
     sampleResidues.push({
       pos,
       residue: resChar,
-      score,
-      isPocket: score > 0.75,
+      score: baselineScore,
+      isPocket: false,
     });
   }
 
+  // Inject known pocket residues with high focus and biological annotations
+  for (const kp of knownPockets) {
+    // Only inject if within sequence length
+    if (kp.pos <= cleanSeq.length) {
+      sampleResidues.push({
+        pos: kp.pos,
+        residue: kp.residue,
+        score: kp.score,
+        isPocket: true,
+        annotation: kp.annotation,
+      });
+    }
+  }
+
+  // Sort by residue position along the sequence
+  sampleResidues.sort((a, b) => a.pos - b.pos);
+
+  // Compute Kinase Selectivity Profile across 4 reference clinical kinases
+  const getRefPkd = (kName: string, defaultOffset: number): { pkd: number; kd_nM: number } => {
+    const key = `${cName}:${kName}`;
+    if (DAVIS_CALIBRATED_PAIRS[key]) {
+      return { pkd: DAVIS_CALIBRATED_PAIRS[key].pkd, kd_nM: DAVIS_CALIBRATED_PAIRS[key].kd_nM };
+    }
+    const derivedPkd = Math.max(5.0, Math.round((pkd + defaultOffset) * 100) / 100);
+    return { pkd: derivedPkd, kd_nM: Math.round(Math.pow(10, 9 - derivedPkd) * 10) / 10 };
+  };
+
+  const selectivity: KinaseSelectivityItem[] = [
+    {
+      kinase: "EGFR",
+      family: "TK (Receptor)",
+      ...getRefPkd("egfr", tName.includes("egfr") ? 0 : -1.8),
+      isPrimary: tName.includes("egfr"),
+    },
+    {
+      kinase: "ABL1",
+      family: "TK (Non-Receptor)",
+      ...getRefPkd("abl1", tName.includes("abl1") ? 0 : -1.4),
+      isPrimary: tName.includes("abl1"),
+    },
+    {
+      kinase: "BRAF",
+      family: "TKL (Ser/Thr)",
+      ...getRefPkd("braf", tName.includes("braf") ? 0 : -2.2),
+      isPrimary: tName.includes("braf"),
+    },
+    {
+      kinase: "KIT",
+      family: "TK (Stem Cell)",
+      ...getRefPkd("kit", -1.6),
+      isPrimary: tName.includes("kit"),
+    },
+  ];
+
   // Use a stable timestamp derived from the hash to prevent hydration mismatches
-  // (Date.now() changes between server prerender and client render)
-  const stableTimestamp = new Date(0).toISOString(); // epoch — will be overwritten client-side
+  const stableTimestamp = new Date(0).toISOString();
 
   return {
     id: `run-${hash}`,
@@ -297,5 +399,6 @@ export function generateMockPrediction(
     is_mock: true,
     baselines: BENCHMARK_METRICS,
     residues: sampleResidues,
+    selectivity,
   };
 }

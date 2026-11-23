@@ -325,6 +325,68 @@ function PredictorStudioContent() {
         </div>
       )}
 
+      {/* EXPO SHOWCASE SCENARIOS TOOLBAR */}
+      <div className="rounded-xl border border-brand-500/30 bg-gradient-to-r from-brand-500/10 via-surface-card to-cyan-500/10 p-3 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-md">
+        <div className="flex items-center gap-2">
+          <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-brand-500/20 text-brand-400 font-bold text-xs">
+            ⚡
+          </span>
+          <div>
+            <div className="text-xs font-bold text-white flex items-center gap-1.5">
+              <span>Expo Showcase Scenarios</span>
+              <span className="text-[10px] px-1.5 py-0.2 rounded bg-brand-500/20 text-brand-300 font-normal">1-Click Live Demos</span>
+            </div>
+            <div className="text-[10px] text-zinc-400">
+              Curated clinical kinase benchmarks ready for instant booth demonstration.
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const erlotinib = SAMPLE_COMPOUNDS.find((c) => c.name === "Erlotinib") || SAMPLE_COMPOUNDS[3];
+              const egfr = SAMPLE_PROTEINS.find((p) => p.name.includes("EGFR")) || SAMPLE_PROTEINS[0];
+              handleSelectCompoundPreset(erlotinib);
+              handleSelectProteinPreset(egfr);
+            }}
+            className="text-[11px] h-7 bg-surface-elevated/70 hover:bg-brand-500/20 hover:border-brand-500/40 border-surface-border text-emerald-300"
+          >
+            🎯 Case 1: Erlotinib + EGFR (Sub-nM Hit)
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const dasatinib = SAMPLE_COMPOUNDS.find((c) => c.name === "Dasatinib") || SAMPLE_COMPOUNDS[0];
+              const abl1 = SAMPLE_PROTEINS.find((p) => p.name.includes("ABL1")) || SAMPLE_PROTEINS[1];
+              handleSelectCompoundPreset(dasatinib);
+              handleSelectProteinPreset(abl1);
+            }}
+            className="text-[11px] h-7 bg-surface-elevated/70 hover:bg-brand-500/20 hover:border-brand-500/40 border-surface-border text-cyan-300"
+          >
+            🎯 Case 2: Dasatinib + ABL1 (Picomolar)
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const aspirin = SAMPLE_COMPOUNDS.find((c) => c.name === "Aspirin") || SAMPLE_COMPOUNDS[5];
+              const abl1 = SAMPLE_PROTEINS.find((p) => p.name.includes("ABL1")) || SAMPLE_PROTEINS[1];
+              handleSelectCompoundPreset(aspirin);
+              handleSelectProteinPreset(abl1);
+            }}
+            className="text-[11px] h-7 bg-surface-elevated/70 hover:bg-red-500/20 hover:border-red-500/40 border-surface-border text-zinc-300"
+          >
+            🛡 Case 3: Aspirin + ABL1 (Negative Control)
+          </Button>
+        </div>
+      </div>
+
       {/* Main Studio Grid (Side-by-Side to eliminate excessive scrolling) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
         {/* LEFT COLUMN: Input Workbench (5 cols on lg) */}
@@ -784,6 +846,66 @@ function PredictorStudioContent() {
                 </CardContent>
               </Card>
 
+              {/* KINOME CROSS-REACTIVITY & SELECTIVITY PROFILE */}
+              {result.selectivity && result.selectivity.length > 0 && (
+                <Card className="border-surface-border bg-surface-card">
+                  <CardHeader className="pb-1 pt-3 px-4">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-xs font-semibold flex items-center gap-1.5">
+                        <Activity className="h-3.5 w-3.5 text-cyan-400" />
+                        Kinome Selectivity &amp; Cross-Reactivity Panel
+                      </CardTitle>
+                      <span className="text-[10px] font-mono text-zinc-400">Davis Panel Cross-Screen</span>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="px-4 pb-3 pt-1 space-y-2">
+                    <p className="text-[11px] text-zinc-400">
+                      Multi-target selectivity profile for <strong className="text-zinc-200">{result.compound_name || "Compound"}</strong> across canonical kinase families.
+                    </p>
+                    <div className="space-y-1.5">
+                      {result.selectivity.map((item) => {
+                        const pct = Math.min(100, Math.max(0, ((item.pkd - 5.0) / (10.5 - 5.0)) * 100));
+                        const isHigh = item.pkd >= 7.5;
+                        const isMod = item.pkd >= 6.0 && item.pkd < 7.5;
+                        return (
+                          <div key={item.kinase} className="rounded-lg border border-surface-border/50 bg-surface-elevated/40 p-2 text-xs">
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="flex items-center gap-1.5">
+                                <span className={`font-bold font-mono ${item.isPrimary ? "text-emerald-400" : "text-zinc-200"}`}>
+                                  {item.kinase}
+                                </span>
+                                <span className="text-[10px] text-zinc-400">({item.family})</span>
+                                {item.isPrimary && (
+                                  <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                    Primary Query
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 font-mono text-[11px]">
+                                <span className="text-zinc-300">
+                                  pK<sub>d</sub>: <strong>{item.pkd.toFixed(2)}</strong>
+                                </span>
+                                <span className={isHigh ? "text-emerald-400" : isMod ? "text-cyan-400" : "text-zinc-500"}>
+                                  K<sub>d</sub>: {item.kd_nM < 1000 ? `${item.kd_nM} nM` : `${(item.kd_nM / 1000).toFixed(1)} µM`}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="h-1.5 w-full rounded-full bg-surface-border overflow-hidden">
+                              <div
+                                className={`h-full rounded-full transition-all duration-500 ${
+                                  isHigh ? "bg-gradient-to-r from-emerald-500 to-teal-400" : isMod ? "bg-cyan-500" : "bg-zinc-600"
+                                }`}
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* TARGET RESIDUE BINDING POCKET ATTENTION PROFILE */}
               <Card className="border-surface-border">
                 <CardHeader className="pb-1 pt-3 px-4">
@@ -810,8 +932,10 @@ function PredictorStudioContent() {
                             color: "#fff",
                           }}
                           formatter={(val: any, name: any, item: any) => [
-                            `Attention: ${val} (Residue ${item.payload.residue}${item.payload.pos})`,
-                            "Weight",
+                            `${val} (Residue ${item.payload.residue}${item.payload.pos})${
+                              item.payload.annotation ? ` • ${item.payload.annotation}` : ""
+                            }`,
+                            item.payload.isPocket ? "Active Pocket Focus" : "Scaffold Attention",
                           ]}
                         />
                         <Bar dataKey="score" radius={[2, 2, 0, 0]}>
