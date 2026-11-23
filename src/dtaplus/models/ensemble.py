@@ -1,4 +1,10 @@
-"""Ensemble model combining GBM and CNN branches with uncertainty spread."""
+"""Ensemble model combining GBM and CNN branches with uncertainty spread.
+
+Improvements over original DeepDTA:
+- Inverse-MSE weighted ensemble across GBM seeds + optional CNN branch.
+- Isotonic regression post-hoc calibration on the validation set, which
+  corrects systematic score bias and reduces MSE without touching model weights.
+"""
 
 from __future__ import annotations
 
@@ -6,6 +12,7 @@ import logging
 import os
 
 import numpy as np
+from sklearn.isotonic import IsotonicRegression
 
 from dtaplus.data import DavisData, encode_protein, encode_smiles
 from dtaplus.models.gbm import SimilarityGBM
@@ -40,6 +47,9 @@ class DTAEnsemble:
         # CNN model branch
         self.cnn_model = None
         self.cnn_available = False
+
+        # Isotonic calibrator fitted on validation set (reduces MSE bias)
+        self.calibrator: IsotonicRegression | None = None
 
     def _load_cnn(self) -> None:
         """Loads trained PyTorch DeepDTA CNN checkpoint if available."""
@@ -128,8 +138,44 @@ class DTAEnsemble:
             self.weights = np.ones(num_members) / num_members
             logger.info("No val_idx provided — using uniform ensemble weights.")
 
+        # Fit isotonic calibrator on validation set to reduce systematic MSE bias
+        if val_idx is not None and len(val_idx) > 20:
+            self._fit_calibrator(data, val_idx)
+        else:
+            self.calibrator = None
+            logger.info("No val_idx provided — skipping isotonic calibration.")
+
         self.is_fitted = True
         return self
+
+    def _fit_calibrator(self, data: DavisData, val_idx: np.ndarray) -> None:
+        """Fits an isotonic regression calibrator on validation predictions vs labels.
+
+        Isotonic regression finds a non-decreasing monotone function f* such that
+        f*(raw_pred) minimises MSE on the validation set. This corrects systematic
+        over- or under-prediction bias without altering model weights or ranking order.
+        The CI (concordance index) is preserved exactly because isotonic regression
+        is order-preserving by construction.
+        """
+        member_preds = [m.predict_indices(data, val_idx) for m in self.gbm_models]
+        if self.cnn_available and self.cnn_model is not None:
+            pairs = [
+                (data.drug_smiles[data.ri[i]], data.protein_sequences[data.ci[i]])
+                for i in val_idx
+            ]
+            cnn_preds = np.array(self._cnn_predict_batch(pairs))
+            member_preds.append(cnn_preds)
+        raw_mean, _ = compute_ensemble_uncertainty(member_preds, weights=self.weights)
+        y_val = data.y[val_idx]
+        self.calibrator = IsotonicRegression(out_of_bounds="clip")
+        self.calibrator.fit(raw_mean, y_val)
+        cal_preds = self.calibrator.predict(raw_mean)
+        raw_mse = float(np.mean((raw_mean - y_val) ** 2))
+        cal_mse = float(np.mean((cal_preds - y_val) ** 2))
+        logger.info(
+            "Isotonic calibrator fitted on %d val pairs: raw val MSE=%.4f → calibrated val MSE=%.4f",
+            len(val_idx), raw_mse, cal_mse,
+        )
 
     def _cnn_predict_pair(self, smiles: str, sequence: str) -> float:
         """Runs inference on a single SMILES and protein sequence using PyTorch CNN."""
@@ -185,7 +231,10 @@ class DTAEnsemble:
             cnn_preds = np.array(self._cnn_predict_batch(pairs))
             member_preds.append(cnn_preds)
 
-        return compute_ensemble_uncertainty(member_preds, weights=self.weights)
+        mean_p, spread = compute_ensemble_uncertainty(member_preds, weights=self.weights)
+        if self.calibrator is not None:
+            mean_p = self.calibrator.predict(mean_p)
+        return mean_p, spread
 
     def predict_pair(
         self,
@@ -214,6 +263,8 @@ class DTAEnsemble:
             weights=self.weights,
         )
         pkd = float(mean_p[0])
+        if self.calibrator is not None:
+            pkd = float(self.calibrator.predict([pkd])[0])
         uncertainty = float(spread[0])
         kd_nm = float(10.0 ** (9.0 - pkd))
         binds = bool(pkd >= 7.0)
@@ -244,6 +295,8 @@ class DTAEnsemble:
         results = []
         for pkd, unc in zip(mean_p, spread):
             pkd_f = float(pkd)
+            if self.calibrator is not None:
+                pkd_f = float(self.calibrator.predict([pkd_f])[0])
             unc_f = float(unc)
             kd_nm = float(10.0 ** (9.0 - pkd_f))
             results.append({

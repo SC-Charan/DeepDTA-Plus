@@ -3,7 +3,15 @@
 import numpy as np
 import pytest
 
-from dtaplus.data import DavisData, encode_protein, encode_smiles
+from dtaplus.data import (
+    DEFAULT_KIBA_SEQ_LEN,
+    DEFAULT_KIBA_SMI_LEN,
+    KIBA_ACTIVE_THRESHOLD,
+    DavisData,
+    KibaData,
+    encode_protein,
+    encode_smiles,
+)
 
 
 def test_davis_data_loading_and_shapes():
@@ -77,10 +85,37 @@ def test_top_level_modular_imports():
     import train
 
     assert hasattr(data_loader, "DavisData")
+    assert hasattr(data_loader, "KibaData")
     assert hasattr(data_loader, "create_dataloader")
     assert hasattr(train, "train_cnn")
     assert hasattr(evaluate, "evaluate_gbm_split")
     assert hasattr(models, "DeepDTACNN")
     assert hasattr(models, "SimilarityGBM")
     assert hasattr(models, "DTAEnsemble")
+
+
+def test_kiba_data_loading_and_shapes():
+    data = KibaData(data_dir="data/kiba")
+
+    # Shapes match Tang et al. (2014) / Öztürk et al. (2018)
+    assert data.Y_shape == (2111, 229)
+    assert data.num_drugs == 2111
+    assert data.num_proteins == 229
+    assert data.num_pairs == 118254
+    assert len(data.y) == 118254
+
+    # Test fold & train union
+    assert len(data.official_test_fold) == 19709
+    assert len(data.official_train_folds) == 5
+    assert len(data.official_train_union) == 98545
+
+    # Threshold definition
+    assert KIBA_ACTIVE_THRESHOLD == 12.1
+    assert (data.y >= KIBA_ACTIVE_THRESHOLD).sum() > 20000
+
+    # Encoding lengths
+    assert data.smi_len == DEFAULT_KIBA_SMI_LEN
+    assert data.seq_len == DEFAULT_KIBA_SEQ_LEN
+    assert data.unique_encoded_drugs.shape == (2111, DEFAULT_KIBA_SMI_LEN)
+    assert data.unique_encoded_proteins.shape == (229, DEFAULT_KIBA_SEQ_LEN)
 

@@ -37,6 +37,11 @@ CHARISOSMILEN = 64
 DEFAULT_DAVIS_SMI_LEN = 85
 DEFAULT_DAVIS_SEQ_LEN = 1200
 
+# KIBA dataset constants
+DEFAULT_KIBA_SMI_LEN = 100
+DEFAULT_KIBA_SEQ_LEN = 1000
+KIBA_ACTIVE_THRESHOLD = 12.1  # KIBA score threshold used in original DeepDTA paper
+
 
 def encode_smiles(
     smiles: str,
@@ -291,4 +296,115 @@ class DavisData:
             test_idx=all_idx[test_mask],
             split_type="cold_target",
             seed=seed,
+        )
+
+
+
+class KibaData:
+    """KIBA dataset manager for DeepDTA+.
+
+    KIBA (Kinase Inhibitor BioActivity) aggregates Ki, Kd, and IC50 values
+    into a unified KIBA score. Higher KIBA score = stronger binding.
+    The original DeepDTA paper uses threshold 12.1 to define 'active' pairs.
+
+    Reference: Tang et al. (2014). Making sense of large-scale kinase inhibitor
+    bioactivity data sets: a comparative and integrative analysis.
+    DOI: 10.1021/ci400709d
+    """
+
+    def __init__(
+        self,
+        data_dir: str = "data/kiba",
+        smi_len: int = DEFAULT_KIBA_SMI_LEN,
+        seq_len: int = DEFAULT_KIBA_SEQ_LEN,
+    ):
+        self.data_dir = data_dir
+        self.smi_len = smi_len
+        self.seq_len = seq_len
+        self.active_threshold = KIBA_ACTIVE_THRESHOLD
+
+        # Load raw KIBA affinity matrix (KIBA score, higher = stronger)
+        y_path = os.path.join(data_dir, "Y")
+        with open(y_path, "rb") as f:
+            self.raw_Y = pickle.load(f, encoding="latin1")
+        self.Y_shape = self.raw_Y.shape
+
+        # KIBA score is used directly (no log transform needed)
+        self.y_matrix = self.raw_Y.copy()
+
+        # Non-NaN pair coordinates
+        self.ri, self.ci = np.where(~np.isnan(self.raw_Y))
+        self.num_pairs = len(self.ri)
+        self.y = self.y_matrix[self.ri, self.ci]
+
+        # Load SMILES ligands
+        lig_path = os.path.join(data_dir, "ligands_can.txt")
+        with open(lig_path, "r") as f:
+            self.ligands_dict = json.load(f, object_pairs_hook=OrderedDict)
+        self.drug_keys = list(self.ligands_dict.keys())
+        self.drug_smiles = list(self.ligands_dict.values())
+        self.num_drugs = len(self.drug_smiles)
+
+        # Load protein sequences
+        prot_path = os.path.join(data_dir, "proteins.txt")
+        with open(prot_path, "r") as f:
+            self.proteins_dict = json.load(f, object_pairs_hook=OrderedDict)
+        self.protein_keys = list(self.proteins_dict.keys())
+        self.protein_sequences = list(self.proteins_dict.values())
+        self.num_proteins = len(self.protein_sequences)
+
+        # Similarities (KIBA uses different filenames)
+        dsim_path = os.path.join(data_dir, "kiba_drug_sim.txt")
+        if os.path.exists(dsim_path):
+            self.dsim = np.loadtxt(dsim_path)
+        else:
+            self.dsim = np.eye(self.num_drugs)
+
+        tsim_path = os.path.join(data_dir, "kiba_target_sim.txt")
+        if os.path.exists(tsim_path):
+            self.tsim = np.loadtxt(tsim_path)
+        else:
+            self.tsim = np.eye(self.num_proteins)
+
+        # Pre-encoded unique drugs and proteins
+        self.unique_encoded_drugs = np.stack(
+            [encode_smiles(s, max_len=self.smi_len) for s in self.drug_smiles]
+        )
+        self.unique_encoded_proteins = np.stack(
+            [encode_protein(p, max_len=self.seq_len) for p in self.protein_sequences]
+        )
+
+        # Pairwise encoded tensors
+        self.encoded_drugs = self.unique_encoded_drugs[self.ri]
+        self.encoded_proteins = self.unique_encoded_proteins[self.ci]
+
+        # Load official folds (same setting1 format as Davis)
+        folds_dir = os.path.join(data_dir, "folds")
+        test_path = os.path.join(folds_dir, "test_fold_setting1.txt")
+        train_path = os.path.join(folds_dir, "train_fold_setting1.txt")
+        with open(test_path, "r") as f:
+            self.official_test_fold = np.array(json.load(f), dtype=np.int64)
+        with open(train_path, "r") as f:
+            raw_train = json.load(f)
+            self.official_train_folds = [np.array(fold, dtype=np.int64) for fold in raw_train]
+
+        self.official_train_union = np.array(
+            sorted(set().union(*[set(fold.tolist()) for fold in self.official_train_folds])),
+            dtype=np.int64,
+        )
+
+    def get_random_split(self, val_fold_idx: int = 0) -> DatasetSplits:
+        """Returns official setting 1 split with one train fold held out as validation."""
+        val_fold = self.official_train_folds[val_fold_idx]
+        train_folds = [f for i, f in enumerate(self.official_train_folds) if i != val_fold_idx]
+        train_idx = np.array(
+            sorted(set().union(*[set(f.tolist()) for f in train_folds])),
+            dtype=np.int64,
+        )
+        return DatasetSplits(
+            train_idx=train_idx,
+            val_idx=val_fold,
+            test_idx=self.official_test_fold,
+            split_type="random",
+            seed=val_fold_idx,
         )
