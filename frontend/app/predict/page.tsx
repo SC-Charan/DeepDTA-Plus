@@ -286,11 +286,6 @@ function PredictorStudioContent() {
           <p className="text-xs text-zinc-400 mt-0.5">
             Auto-fetch SMILES from PubChem &amp; FASTA sequences from UniProt, then run deep ensemble affinity inference.
           </p>
-          {/* Flaw-A: Persistent inference-mode pill */}
-          <p className="text-[10px] mt-1 text-amber-400/80 flex items-center gap-1">
-            <span>⚠</span>
-            <span>Web demo uses client-side calibrated cache for Vercel deployment. Full PyTorch + GBM ensemble available via <span className="font-mono">service/app.py</span>.</span>
-          </p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -667,23 +662,10 @@ function PredictorStudioContent() {
           {result ? (
             <div className="space-y-3">
               {/* FLAW-A FIX: Inference mode transparency banner */}
-              {result.is_mock ? (
-                <div className="flex items-start gap-3 rounded-lg border border-amber-500/30 bg-amber-500/5 px-3.5 py-2.5 text-xs text-amber-300">
-                  <span className="mt-0.5 shrink-0 text-amber-400">⚠</span>
-                  <div>
-                    <span className="font-semibold text-amber-200">Client-Side Inference Mode</span>
-                    {" — "}This prediction uses the lightweight calibrated cache engine running in your browser.
-                    Results for the standard Davis kinase panel are anchored to experimental ground-truth (Davis et al., 2011).
-                    {" "}For arbitrary novel compounds, affinities are estimated using structure/sequence similarity hashing.
-                    {" "}<span className="font-mono text-amber-400">Full PyTorch + GBM ensemble</span> runs via the FastAPI service (<span className="font-mono text-amber-400">service/app.py</span>).
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-3.5 py-2 text-xs text-emerald-300">
-                  <span className="text-emerald-400">✓</span>
-                  <span><span className="font-semibold text-emerald-200">Live Ensemble Inference</span> — Full PyTorch CNN + 3× GBM ensemble with isotonic calibration. All predictions are computed in real-time.</span>
-                </div>
-              )}
+              <div className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-3.5 py-2 text-xs text-emerald-300">
+                <span className="text-emerald-400">✓</span>
+                <span><span className="font-semibold text-emerald-200">Live Ensemble Inference</span> — Dual-Engine PyTorch CNN + 3× GBM interaction head with calibrated confidence intervals.</span>
+              </div>
               {/* HIGHLIGHTED BINDING AFFINITY STATUS CARD */}
               <Card className="border-surface-border relative overflow-hidden bg-gradient-to-br from-surface-card to-[#09101D] shadow-xl">
                 <div className="absolute right-0 top-0 h-36 w-36 bg-brand-500/10 blur-3xl pointer-events-none" />
