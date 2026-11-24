@@ -10,7 +10,7 @@ const nextConfig = {
   },
   // Proxy to FastAPI backend and serve 3D front-end at root
   async rewrites() {
-    const backend = process.env.NEXT_PUBLIC_API_URL;
+    const backend = process.env.NEXT_PUBLIC_API_URL || "https://deepdta-plus.onrender.com";
     const backendRewrites = backend
       ? [
           {

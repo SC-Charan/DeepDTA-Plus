@@ -1,7 +1,7 @@
 import { EngineStatus, PredictionRequest, PredictionResult, BatchItem, HistoryItem } from "./types";
 import { generateMockPrediction } from "./mock-data";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://deepdta-plus.onrender.com";
 const HISTORY_STORAGE_KEY = "deepdta_plus_history_v1";
 
 export async function checkEngineStatus(): Promise<EngineStatus> {

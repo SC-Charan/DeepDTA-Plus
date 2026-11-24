@@ -4,7 +4,7 @@ import { generateMockPrediction } from "@/lib/mock-data";
 
 export const runtime = "edge";
 
-const FASTAPI_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+const FASTAPI_URL = process.env.NEXT_PUBLIC_API_URL || "https://deepdta-plus.onrender.com";
 
 export async function POST(req: NextRequest) {
   try {
