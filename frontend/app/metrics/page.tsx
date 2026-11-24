@@ -250,7 +250,7 @@ const COLD_DRUG_SPLIT = [
 const COLD_TARGET_SPLIT = [
   { model: "Predict-the-Mean", ci: "0.500 ± 0.000", mse: "0.859 ± 0.044", r2m: "0.000 ± 0.000", aupr: "0.092 ± 0.005" },
   { model: "Similarity GBM", ci: "0.848 ± 0.008", mse: "0.368 ± 0.028", r2m: "0.544 ± 0.024", aupr: "0.669 ± 0.035" },
-  { model: "DeepDTA+ Ensemble", ci: "0.854 ± 0.007", mse: "0.354 ± 0.021", r2m: "0.563 ± 0.022", aupr: "0.678 ± 0.033", highlight: true },
+  { model: "DeepDTA+ Ensemble", ci: "0.854 ± 0.007", mse: "0.362 ± 0.029", r2m: "0.544 ± 0.023", aupr: "0.671 ± 0.034", highlight: true },
 ];
 
 const RADAR_DATA = [

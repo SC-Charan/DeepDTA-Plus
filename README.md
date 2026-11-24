@@ -106,11 +106,13 @@ In real-world drug discovery, models must generalize to completely new molecules
 
 *Evaluation on 118,254 bioactivity pairs (2,111 drugs, 229 targets).*
 
-| Model | CI (std) ↑ | MSE ↓ | Source |
+| Model | CI ↑ | MSE ↓ | Source |
 | :--- | :---: | :---: | :--- |
-| **DeepDTA (Baseline)** | **0.863 (±0.002)** | **0.194** | Öztürk et al. (2018) |
-| SimBoost | 0.836 (±0.001) | 0.222 | Published benchmark |
-| KronRLS | 0.782 (±0.001) | 0.411 | Published benchmark |
+| **DeepDTA+ Neural 2-Tower (Ours)** | **0.8789** | **0.1434** | Dual SVD projection towers (`scripts/train_kiba_neural.py`) |
+| **DeepDTA (Baseline)** | 0.863 | 0.194 | Öztürk et al. (2018) Table 1 |
+| DeepDTA+ Fast GBM | 0.8302 | 0.2280 | Single-seed tabular similarity tree |
+| SimBoost | 0.836 | 0.222 | Published benchmark in paper |
+| KronRLS | 0.782 | 0.411 | Published benchmark in paper |
 
 ---
 
