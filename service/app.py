@@ -38,32 +38,43 @@ logger = logging.getLogger("dtaplus.api")
 model_instance: DTAEnsemble | None = None
 
 DEFAULT_CHECKPOINT_PATH = "results/checkpoints/deepdta_cnn_best.pt"
+DEFAULT_ENSEMBLE_PKL = "results/checkpoints/ensemble_fitted.pkl"
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global model_instance
-    logger.info("Initializing DeepDTA+ service: loading Davis data and fitting ensemble...")
-    data = DavisData(data_dir="data/davis")
-    train_idx = data.official_train_union
-    splits = data.get_random_split(val_fold_idx=0)
-
-    # Initialize ensemble with CNN checkpoint path
-    ckpt_path = os.environ.get("DEEPDTA_CNN_CHECKPOINT", DEFAULT_CHECKPOINT_PATH)
-    # In test mode use a tiny subset so the test suite finishes quickly.
+    pkl_path = os.environ.get("DEEPDTA_ENSEMBLE_PKL", DEFAULT_ENSEMBLE_PKL)
     _test_mode = os.environ.get("DEEPDTA_TEST_MODE", "0") == "1"
-    _n_seeds = 1 if _test_mode else 3
-    _idx = train_idx[:200] if _test_mode else train_idx
 
-    model_instance = DTAEnsemble(
-        num_gbm_seeds=_n_seeds,
-        random_state=42,
-        cnn_checkpoint_path=ckpt_path if os.path.exists(ckpt_path) else None,
-    )
-    model_instance.fit_dataset(data, _idx, val_idx=None if _test_mode else splits.val_idx, split_type="random")
+    # Fast low-memory path: load pre-fitted ensemble from disk (<350MB RAM, <3s load)
+    if os.path.exists(pkl_path) and not _test_mode:
+        logger.info("Loading pre-fitted DeepDTA+ ensemble checkpoint from %s (low-memory fast boot)...", pkl_path)
+        import pickle
 
-    cnn_status = "active" if model_instance.cnn_available else "dormant (weights not found)"
-    logger.info("DeepDTA+ ensemble loaded successfully (CNN branch: %s).", cnn_status)
+        with open(pkl_path, "rb") as f:
+            model_instance = pickle.load(f)
+        logger.info("Pre-fitted ensemble loaded into memory successfully.")
+    else:
+        logger.info("Initializing DeepDTA+ service: loading Davis data and fitting ensemble...")
+        data = DavisData(data_dir="data/davis")
+        train_idx = data.official_train_union
+        splits = data.get_random_split(val_fold_idx=0)
+
+        # Initialize ensemble with CNN checkpoint path
+        ckpt_path = os.environ.get("DEEPDTA_CNN_CHECKPOINT", DEFAULT_CHECKPOINT_PATH)
+        _n_seeds = 1 if _test_mode else 3
+        _idx = train_idx[:200] if _test_mode else train_idx
+
+        model_instance = DTAEnsemble(
+            num_gbm_seeds=_n_seeds,
+            random_state=42,
+            cnn_checkpoint_path=ckpt_path if os.path.exists(ckpt_path) else None,
+        )
+        model_instance.fit_dataset(data, _idx, val_idx=None if _test_mode else splits.val_idx, split_type="random")
+
+    cnn_status = "active" if (model_instance and model_instance.cnn_available) else "dormant (weights not found)"
+    logger.info("DeepDTA+ ensemble ready to serve requests (CNN branch: %s).", cnn_status)
     yield
     logger.info("Shutting down DeepDTA+ service.")
 
