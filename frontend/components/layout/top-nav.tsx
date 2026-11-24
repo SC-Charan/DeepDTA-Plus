@@ -13,6 +13,7 @@ const LINKS = [
   { label: "Architecture", href: "/model" },
   { label: "Results", href: "/metrics" },
   { label: "History", href: "/history" },
+  { label: "3D Studio", href: "/demo.html" },
 ];
 
 export const TopNav: React.FC = () => {

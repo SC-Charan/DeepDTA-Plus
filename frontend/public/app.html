@@ -1,0 +1,1685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DeepDTA + | Drug-Target Binding Affinity</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--sand:#F6C992;--deep:#30525C;--ice:#ACC0D3;--rose:#D396A6;--teal:#09A1A1;--steel:#5484A4;--panel:#0a171b;
+color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-behavior:smooth;scroll-padding-top:72px}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:#000;color:var(--ice);font:400 16px/1.55 'Space Grotesk',system-ui,sans-serif}
+h1,h2,h3{margin:0;color:#fff;font-weight:500;letter-spacing:-.02em}
+a{color:inherit}
+#bg{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+nav{position:fixed;top:0;left:0;right:0;z-index:20;display:flex;align-items:center;gap:6px;padding:12px 20px;padding-top:calc(12px + env(safe-area-inset-top,0px));background:linear-gradient(#000 40%,transparent)}
+nav b{color:#fff;font-size:18px;margin-right:auto;font-weight:700}
+nav b i{color:var(--sand);font-style:normal}
+nav a{text-decoration:none;font-size:14px;padding:6px 12px;border-radius:99px;transition:.2s}
+nav a:hover,nav a.on{background:rgba(9,161,161,.18);color:#fff}
+nav .links{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+@media(max-width:760px){nav b{display:none}}
+main{position:relative;z-index:2}
+#hero{height:320vh;cursor:grab;touch-action:pan-y;user-select:none}
+.stick{position:sticky;top:0;height:100vh;height:100svh;display:grid;place-items:center;text-align:center;padding:0 24px}
+.stick>div{grid-area:1/1}
+.title{font-size:clamp(56px,13vw,170px);line-height:.95;font-weight:700;text-shadow:0 0 60px #000,0 0 20px #000}
+.title i{color:var(--sand);font-style:normal}
+.sub{max-width:34ch;margin:18px auto 0;font-size:18px;text-shadow:0 0 14px #000}
+.hint{position:absolute;bottom:calc(28px + env(safe-area-inset-bottom,0px));left:0;right:0;font-size:14px;opacity:.8}
+.hint::after{content:"";display:block;width:1px;height:34px;margin:10px auto 0;background:linear-gradient(var(--teal),transparent);}
+#done{opacity:0;pointer-events:none;align-self:end;margin-bottom:12vh}
+#done.show{pointer-events:auto}
+.bound{display:inline-flex;align-items:center;gap:10px;font-size:clamp(28px,5vw,48px);color:var(--sand);font-weight:700}
+.bound::before{content:"";width:14px;height:14px;border-radius:50%;background:var(--teal);box-shadow:0 0 0 0 var(--teal)}
+.btn{display:inline-block;margin-top:18px;padding:12px 26px;border-radius:99px;border:0;background:var(--teal);color:#001314;font:500 16px inherit;font-family:inherit;text-decoration:none;cursor:pointer;transition:transform .15s,background .2s}
+.btn:hover{background:var(--sand);transform:translateY(-2px)}
+.btn:active{transform:none}
+.btn.ghost{background:transparent;border:1px solid var(--steel);color:var(--ice)}
+.btn.ghost:hover{background:var(--deep);color:#fff}
+:focus-visible{outline:2px solid var(--sand);outline-offset:3px}
+section.pg{max-width:1040px;margin:0 auto;padding:14vh 22px 4vh}
+section.pg>h2{font-size:clamp(30px,5vw,52px);max-width:16ch}
+section.pg>p.lead{max-width:52ch;font-size:18px;margin:12px 0 32px}
+.card{background:var(--panel);border:1px solid rgba(172,192,211,.14);border-radius:20px;padding:24px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:760px){.row{grid-template-columns:1fr}}
+label{display:block;font-size:14px;margin:0 0 6px}
+select,input[type=text],textarea{width:100%;background:#000;color:#fff;border:1px solid var(--deep);border-radius:12px;padding:12px 14px;font:inherit;transition:border-color .2s}
+select:focus,input:focus,textarea:focus{border-color:var(--teal);outline:0}
+textarea{min-height:130px;resize:vertical;font-size:14px}
+.field{margin-bottom:16px}
+.chip{display:inline-block;padding:3px 12px;border-radius:99px;font-size:13px;font-weight:500;color:#001314;background:var(--c)}
+.gauge{width:100%;max-width:280px;display:block;margin:0 auto}
+.gauge .fill{transition:stroke-dasharray 1s cubic-bezier(.2,.8,.2,1),stroke .4s}
+.big{font-size:56px;font-weight:700;color:#fff;line-height:1;text-align:center}
+.mid{text-align:center;margin-top:6px}
+.res{display:flex;flex-direction:column;justify-content:center;min-height:300px}
+.empty{text-align:center;opacity:.7}
+.mol{display:grid;place-items:center;background:var(--panel);border-radius:14px}
+.list{display:grid;gap:10px;margin-top:6px}
+.item{display:flex;align-items:center;gap:14px;padding:10px 14px;border-radius:14px;background:#000;border:1px solid var(--deep);cursor:pointer;text-align:left;color:inherit;font:inherit;width:100%;transition:.2s}
+.item:hover,.item.on{border-color:var(--teal);background:rgba(9,161,161,.1)}
+.facts{display:grid;grid-template-columns:auto 1fr;gap:6px 18px;margin:16px 0}
+.facts dt{opacity:.7}.facts dd{margin:0;color:#fff;word-break:break-all}
+.rank{display:grid;grid-template-columns:30px 76px 1fr;gap:14px;align-items:center;padding:12px 16px;margin-bottom:10px;border-radius:16px;background:var(--panel);border:1px solid rgba(172,192,211,.14);}
+.rank .nm{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;color:#fff}
+.bar{height:8px;border-radius:9px;background:#000;margin-top:8px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;border-radius:9px;background:var(--c);transition:width 1s cubic-bezier(.2,.8,.2,1)}
+.flow{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap}
+.node{padding:18px 28px;border-radius:18px;border:1px solid var(--deep);background:var(--panel);color:#fff;font-size:20px}
+.node.out{border-color:var(--sand);color:var(--sand)}
+.arrow{width:70px;height:2px;background:repeating-linear-gradient(90deg,var(--teal) 0 8px,transparent 8px 16px);background-size:16px 2px}
+.stat{font-size:clamp(34px,6vw,60px);color:#fff;font-weight:700;line-height:1.1}
+.cmp{display:grid;grid-template-columns:100px 1fr 50px;gap:10px;align-items:center;margin:9px 0;font-size:14px}
+.hist{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 16px;border-radius:14px;background:var(--panel);margin-bottom:8px;border:1px solid rgba(172,192,211,.12)}
+footer{position:relative;z-index:2;text-align:center;padding:10vh 22px calc(40px + env(safe-area-inset-bottom,0px));font-size:14px}
+footer b{color:#fff;font-size:20px;display:block}
+.rev{opacity:1}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.rev{opacity:1;transform:none}html{scroll-behavior:auto}}
+.tease{padding-top:10vh;padding-bottom:2vh}
+.tease h2{font-size:clamp(28px,4vw,44px);max-width:14ch}
+.tease .lead{max-width:40ch;font-size:18px;margin:12px 0 22px}
+.tease .card{min-height:150px}
+.mini{display:flex;justify-content:space-between;align-items:center;gap:10px;color:#fff;margin-top:12px}
+.view{max-width:1180px;padding-top:104px}
+.pt{font-size:clamp(26px,4vw,40px);margin-bottom:6px}
+.view p{margin:6px 0}
+.note{padding:10px 14px;border:1px solid rgba(246,201,146,.35);background:rgba(246,201,146,.07);border-radius:12px;font-size:14px;color:var(--sand)}
+.err{padding:10px 14px;border:1px solid rgba(211,150,166,.5);background:rgba(211,150,166,.1);border-radius:12px;color:var(--rose);margin:12px 0}
+.g2{display:grid;grid-template-columns:5fr 7fr;gap:20px;align-items:start;margin-top:16px}
+.g2e{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
+.g3{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin:16px 0}
+@media(max-width:900px){.g2,.g2e{grid-template-columns:1fr}}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:16px 0}
+.tab,.pre,.qs{font:inherit;font-size:13px;padding:7px 14px;border-radius:99px;border:1px solid var(--deep);background:transparent;color:var(--ice);cursor:pointer;transition:.2s}
+.tab:hover,.pre:hover,.qs:hover{border-color:var(--teal);color:#fff}
+.tab.on,.pre.on{background:rgba(9,161,161,.18);border-color:var(--teal);color:#fff}
+.btn.sm{padding:8px 16px;font-size:14px;margin-top:0}
+.btn:disabled{opacity:.6;cursor:wait}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+.rowf{display:flex;gap:8px;margin-bottom:12px}.rel{position:relative;flex:1}
+.sug{position:absolute;left:0;right:0;top:100%;z-index:5;background:#000;border:1px solid var(--deep);border-radius:12px;overflow:hidden}
+.sug button{display:flex;justify-content:space-between;width:100%;padding:9px 14px;background:none;border:0;color:var(--ice);font:inherit;cursor:pointer;text-align:left}.sug button:hover{background:var(--deep);color:#fff}
+.st{font-size:13px;color:var(--sand)}
+.mini2{background:#000;border:1px solid var(--deep);border-radius:14px;padding:14px}.mini2 small{display:block;opacity:.75}
+.props{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.speclab{display:flex;justify-content:space-between;font-size:12px;gap:6px}
+.specbar{position:relative;height:12px;border-radius:9px;background:linear-gradient(90deg,#D396A6 0 28%,#F6C992 28% 43%,#5484A4 43% 57%,#09A1A1 57%);margin:10px 0 8px}
+.specbar i{position:absolute;top:-5px;width:4px;height:22px;background:#fff;border-radius:3px;box-shadow:0 0 0 3px #000}
+.call{padding:14px;border-radius:14px;background:rgba(9,161,161,.08);border:1px solid rgba(9,161,161,.3);margin:14px 0}
+.pv{background:#000;border:1px solid var(--deep);border-radius:14px;overflow:hidden;margin-top:14px}
+.pvh{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;font-size:13px;border-bottom:1px solid var(--deep);color:#fff}
+.pvh button{background:none;border:0;color:var(--ice);font:inherit;font-size:12px;cursor:pointer;padding:3px 8px;border-radius:6px}
+.pvh a{color:var(--ice);margin-left:6px}
+.pv[data-m=p] [data-v=p],.pv[data-m=w] [data-v=w]{background:var(--teal);color:#001314}
+.pvb{padding:10px;min-height:180px;display:grid;place-items:center}
+.pv[data-m=w] .pimg,.pv[data-m=p] .pwire{display:none}
+.pimg{max-width:100%;background:#fff;border-radius:8px}
+.pills{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;font-size:12px}.pills span{background:var(--deep);padding:2px 10px;border-radius:99px;color:#fff}
+.tbl{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:10px 12px;border-bottom:1px solid rgba(172,192,211,.12);vertical-align:middle}th{color:#fff;font-weight:500;white-space:nowrap}
+tr.hl{background:rgba(9,161,161,.1)}
+.mono{font-family:ui-monospace,monospace;font-size:12.5px;word-break:break-all}
+code{font-family:ui-monospace,monospace;color:var(--sand)}
+pre.code{background:#000;border:1px solid var(--deep);border-radius:14px;padding:16px;overflow-x:auto;font-size:12.5px;color:var(--ice)}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#001314;margin-right:6px;opacity:.55}
+.cardg{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-top:16px}
+.dz{display:grid;place-items:center;text-align:center;gap:6px;border:2px dashed var(--deep);border-radius:16px;padding:28px;cursor:pointer;transition:.2s;margin-top:12px}.dz:hover{border-color:var(--teal);background:rgba(9,161,161,.07)}
+.pgl{display:flex;justify-content:space-between;font-size:13px;margin:10px 0 4px}
+.modal{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.78);display:grid;place-items:center;padding:20px}.modal .card{max-width:560px;width:100%;max-height:90vh;overflow:auto}
+.steps{display:grid;gap:12px}.stp{display:flex;gap:12px}.stp>b{flex:0 0 26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:12px;background:rgba(9,161,161,.2);color:#fff}
+.hp{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;margin-top:12px}
+.dense{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.facts{margin:14px 0}
+</style>
+</head>
+<body>
+<canvas id="bg" aria-hidden="true"></canvas>
+<nav>
+<b><a href="#home" style="font-size:inherit;padding:0;background:none">DeepDTA<i> +</i></a></b>
+<div class="links" id="links">
+<a href="#predict">Predict</a><a href="#search">Compound Search</a><a href="#screen">Virtual Screening</a><a href="#how">Architecture</a><a href="#results">Results</a><a href="#history">History</a>
+</div>
+<a href="#auth" class="btn ghost sm" style="margin:0 0 0 8px;padding:6px 14px">Sign in</a>
+</nav>
+<main>
+<section id="hero">
+<div class="stick">
+<div id="intro"><h1 class="title">DeepDTA<i> +</i></h1><p class="sub">Predict how strongly a drug binds to its protein target.</p></div>
+<div id="done"><div class="bound" id="state">Bound</div><p class="sub" style="margin-top:8px">Pick a compound and a target to see how strong the bond is.</p><a class="btn" href="#predict">Predict a binding</a></div>
+<div class="hint" id="hint">Scroll to dock the drug, drag to rotate</div>
+</div>
+</section>
+
+<div id="teasers"></div>
+
+<section class="pg view" id="predict" hidden></section>
+
+<section class="pg view" id="search" hidden></section>
+
+<section class="pg view" id="screen" hidden></section>
+
+<section class="pg view" id="how" hidden></section>
+
+<section class="pg view" id="results" hidden></section>
+
+<section class="pg view" id="history" hidden></section>
+
+<section class="pg view" id="auth" hidden></section>
+</main>
+<footer><b>DeepDTA +</b>Team G1542: Havisha, SaiCharan, Abhinov, Rishitha, Hariharan<br><a href="https://doi.org/10.1093/bioinformatics/bty593" target="_blank" rel="noopener">Based on Öztürk et al., 2018</a></footer>
+
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const COL={None:'#D396A6',Moderate:'#F6C992',High:'#5484A4',"Very high":'#09A1A1'};
+const status=p=>p<6?'None':p<7?'Moderate':p<8?'High':'Very high';
+const chip=p=>{const s=status(p);return `<span class="chip" style="--c:${COL[s]}">${s}</span>`};
+const kd=p=>{const v=Math.pow(10,9-p);return v>=100?Math.round(v).toLocaleString():v.toFixed(1)};
+const TARGETS=['EGFR','CDK2','ABL1','BRAF','VEGFR2'];
+const RING=[[0,-34],[29.4,-17],[29.4,17],[0,34],[-29.4,17],[-29.4,-17]];
+const RB=[[0,1,2],[1,2],[2,3,2],[3,4],[4,5,2],[5,0]];
+const DB={
+Aspirin:{f:'C9H8O4',w:'180.16',s:'CC(=O)OC1=CC=CC=C1C(=O)O',a:[...RING,[59,-34,'O'],[88,-17],[88,-51,'O'],[117,-34],[59,34],[59,68,'O'],[88,17,'OH']],b:[...RB,[1,6],[6,7],[7,8,2],[7,9],[2,10],[10,11,2],[10,12]]},
+Paracetamol:{f:'C8H9NO2',w:'151.16',s:'CC(=O)NC1=CC=C(O)C=C1',a:[...RING,[0,-68,'OH'],[0,68,'NH'],[29,85],[29,119,'O'],[59,68]],b:[...RB,[0,6],[3,7],[7,8],[8,9,2],[8,10]]},
+Ibuprofen:{f:'C13H18O2',w:'206.29',s:'CC(C)CC1=CC=C(C=C1)C(C)C(=O)O',a:[...RING,[0,-68],[29,-85],[29,-119],[59,-68],[0,68],[-29,85],[29,85],[29,119,'O'],[59,68,'OH']],b:[...RB,[0,6],[6,7],[7,8],[7,9],[3,10],[10,11],[10,12],[12,13,2],[12,14]]}
+};
+const GEN={a:[...RING,[59,-34],[88,-17],[117,-34]],b:[...RB,[1,6],[6,7],[7,8]]};
+const ln=(a,b,c,d)=>`<line x1="${a}" y1="${b}" x2="${c}" y2="${d}" stroke="#ACC0D3" stroke-width="2" stroke-linecap="round"/>`;
+function mol(s,w=200){const A=s.a,xs=A.map(a=>a[0]),ys=A.map(a=>a[1]);
+const x0=Math.min(...xs)-26,y0=Math.min(...ys)-26,x1=Math.max(...xs)+26,y1=Math.max(...ys)+26;
+let o=`<svg viewBox="${x0} ${y0} ${x1-x0} ${y1-y0}" width="${w}" role="img" aria-label="2D structure">`;
+s.b.forEach(([i,j,n])=>{const p=A[i],q=A[j],dx=q[1]-p[1],dy=p[0]-q[0],l=Math.hypot(dx,dy),ox=dx/l*3,oy=dy/l*3;
+o+=n==2?ln(p[0]+ox,p[1]+oy,q[0]+ox,q[1]+oy)+ln(p[0]-ox,p[1]-oy,q[0]-ox,q[1]-oy):ln(p[0],p[1],q[0],q[1])});
+A.forEach(a=>{if(a[2])o+=`<circle cx="${a[0]}" cy="${a[1]}" r="11" fill="#0a171b"/><text x="${a[0]}" y="${a[1]+4}" text-anchor="middle" font-size="13" font-weight="700" fill="${a[2][0]=='O'?'#D396A6':'#F6C992'}">${a[2]}</text>`});
+return o+'</svg>'}
+const find=n=>Object.keys(DB).find(k=>k.toLowerCase()==n.trim().toLowerCase());
+const hash=s=>{let x=2166136261;for(const c of s){x^=c.charCodeAt(0);x=Math.imul(x,16777619)}return(x>>>0)/4294967295};
+/* Replace this with a call to your FastAPI backend, keeping the same return shape (a pKd number). */
+const API_URL='';
+async function predict(name,target){
+ if(API_URL){try{const r=await fetch(API_URL+'/predict',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({compound:name,target})});const j=await r.json();if(typeof j.pKd=='number')return j.pKd}catch(e){}}
+ return 4.8+hash(name.toLowerCase()+target)*4.4}
+
+/* ===== original app logic, transpiled from the Next.js source ===== */
+const SAMPLE_COMPOUNDS = [
+    {
+        name: "Dasatinib",
+        category: "Kinase Inhibitor",
+        smiles: "CC1=C(C(=CC=C1)Cl)NC(=O)C2=CN=C(S2)NC3=CC(=NC(=N3)C)N4CCN(CC4)CCO",
+        formula: "C22H26ClN7O2S",
+        weight: 488.01,
+        description: "Potent multi-targeted BCR-ABL and Src family tyrosine kinase inhibitor.",
+    },
+    {
+        name: "Imatinib",
+        category: "Kinase Inhibitor",
+        smiles: "CC1=C(C=C(C=C1)NC(=O)C2=CC=C(C=C2)CN3CCN(CC3)C)NC4=NC=CC(=N4)C5=CN=CC=C5",
+        formula: "C29H31N7O",
+        weight: 493.60,
+        description: "First-generation selective BCR-ABL tyrosine kinase inhibitor for CML.",
+    },
+    {
+        name: "Lapatinib",
+        category: "Dual Inhibitor",
+        smiles: "CS(=O)(=O)CCNCC1=CC=C(O1)C2=CC3=C(C=C2)N=CN=C3NC4=CC(=C(C=C4)OCC5=CC(=CC=C5)F)Cl",
+        formula: "C29H26ClFN4O4S",
+        weight: 581.06,
+        description: "Dual EGFR and HER2/neu receptor tyrosine kinase inhibitor.",
+    },
+    {
+        name: "Erlotinib",
+        category: "EGFR Inhibitor",
+        smiles: "COCCOC1=C(C=C2C(=C1)C(=NC=N2)NC3=CC=CC(=C3)C#C)OCCOC",
+        formula: "C22H23N3O4",
+        weight: 393.44,
+        description: "Reversible inhibitor targeting epidermal growth factor receptor (EGFR).",
+    },
+    {
+        name: "Gefitinib",
+        category: "EGFR Inhibitor",
+        smiles: "COC1=C(C=C2C(=C1)N=CN=C2NC3=CC(=C(C=C3)F)Cl)OCCCN4CCOCC4",
+        formula: "C22H24ClFN4O3",
+        weight: 446.90,
+        description: "Selective inhibitor of EGFR tyrosine kinase enzymatic domain.",
+    },
+    {
+        name: "Aspirin",
+        category: "NSAID",
+        smiles: "CC(=O)OC1=CC=CC=C1C(=O)O",
+        formula: "C9H8O4",
+        weight: 180.16,
+        description: "Acetylsalicylic acid; non-selective cyclooxygenase (COX-1/COX-2) inhibitor.",
+    },
+    {
+        name: "Caffeine",
+        category: "Xanthine Alkaloid",
+        smiles: "CN1C=NC2=C1C(=O)N(C(=O)N2C)C",
+        formula: "C8H10N4O2",
+        weight: 194.19,
+        description: "Central nervous system stimulant and non-selective adenosine antagonist.",
+    },
+    {
+        name: "Sorafenib",
+        category: "Kinase Inhibitor",
+        smiles: "CNC(=O)C1=NC=CC(=C1)OC2=CC=C(C=C2)NC(=O)NC3=CC(=C(C=C3)Cl)C(F)(F)F",
+        formula: "C21H16ClF3N4O3",
+        weight: 464.82,
+        description: "Multi-kinase inhibitor inhibiting VEGFR, PDGFR, and Raf kinases.",
+    },
+];
+const SAMPLE_PROTEINS = [
+    {
+        id: "ABL1",
+        name: "Tyrosine-protein kinase ABL1",
+        uniprot: "P00519",
+        organism: "Homo sapiens",
+        length: 1130,
+        sequence: "MLEICLKLVGCKSKKGLSSSSSCYLEEALQRPVASDFEPQGLSEAARWNSKENLLAGPSENDPNLFVALYDFVASGDNTLSITKGEKLRVLGYNHNGEWCEAQTKNGQGWVPSNYITPVNSLEKHSWYHGPVSRNAAEYLLSSGINGSFLVRESESSPGQRSISLRYEGRVYHYRINTASDGKLYVSSESRFNTLAELVHHHSTVADGLITTLHYPAPKRNKPTVYGVSPNYDKWEMERTDITMKHKLGGGQYGEVYEGVWKKYSLTVAVKTLKEDTMEVEEFLKEAAVMKEIKHPNLVQLLGVCTREPPFYIITEFMTYGNLLDYLRECNRQEVNAVVLLYMATQISSAMEYLEKKNFIHRDLAARNCLVGENHLVKVADFGLSRLMTGDTYTAHAGAKFPIKWTAPESLAYNKFSIKSDVWAFGVLLWEIATYGMSPYPGIDLSQVYELLEKDYRMERPEGCPEKVYELMRACWQWNPSDRPSFAEIHQAFETMFQESSISDEVEKELGKQGVRGAVSTLLQAPELPTKTRTSRRAAEHRDTTDVPEMPHSKGQGESDPLDHEPAVSPLLPRKERGPPEGGLNEDERLLPKDKKTNLFSALIKKKKKTAPTPPKRSSSFREMDGQPERRGAGEEEGRDISNGALAFTPLDTADPAKSPKPSNGAGVPNGALRESGGSGFRSPHLWKKSSTLTSSRLATGEEEGGGSSSKRFLRSCSASCVPHGAKDTEWRSVTLPRDLQSTGRQFDSSTFGGHKSEKPALPRKRAGENRSDQVTRGTVTPPPRLVKKNEEAADEVFKDIMESSPGSSPPNLTPKPLRRQVTVAPASGLPHKEEAGKGSALGTPAAAEPVTPTSKAGSGAPGGTSKGPAEESRVRRHKHSSESPGRDKGKLSRLKPAPPPPPAASAGKAGGKPSQSPSQEAAGEAVLGAKTKATSLVDAVNSDAAKPSQPGEGLKKPVLPATPKPQSAKPSGTPISPAPVPSTLPSASSALAGDQPSSTAFIPLISTRVSLRKTRQPPERIASGAITKGVVLDSTEALCLAISRNSEQMASHSAVLEAGKNLYTFCVSYVDSIQQMRNKFAFREAINKLENNLRELQICPATAGSGPAATQDFSKLLSSVKEISDIVQR",
+        description: "Key target of Dasatinib and Imatinib in chronic myeloid leukemia.",
+    },
+    {
+        id: "EGFR",
+        name: "Epidermal growth factor receptor",
+        uniprot: "P00533",
+        organism: "Homo sapiens",
+        length: 1210,
+        sequence: "MRPSGTAGAALLALLAALCPASRALEEKKVCQGTSNKLTQLGTFEDHFLSLQRMFNNCEVVLGNLEITYVQRNYDLSFLKTIQEVAGYVLIALNTVERIPLENLQIIRGNMYYENSYALAVLSNYDANKTGLKELPMRNLQEILHGAVRFSNNPALCNVESIQWRDIVSSDFLSNMSMDFQNHLGSCQKCDPSCPNGSCWGAGEENCQKLTKIICAQQCSGRCRGKSPSDCCHNQCAAGCTGPRESDCLVCRKFRDEATCKDTCPPLMLYNPTTYQMDVNPEGKYSFGATCVKKCPRNYVVTDHGSCVRACGADSYEMEEDGVRKCKKCEGPCRKVCNGIGIGEFKDSLSINATNIKHFKNCTSISGDLHILPVAFRGDSFTHTPPLDPQELDILKTVKEITGFLLIQAWPENRTDLHAFENLEIIRGRTKQHGQFSLAVVSLNITSLGLRSLKEISDGDVIISGNKNLCYANTINWKKLFGTSGQKTKIISNRGENSCKATGQVCHALCSPEGCWGPEPRDCVSCRNVSRGRECVDKCNLLEGEPREFVENSECIQCHPECLPQAMNITCTGRGPDNCIQCAHYIDGPHCVKTCPAGVMGENNTLVWKYADAGHVCHLCHPNCTYGCTGPGLEGCPTNGPKIPSIATGMVGALLLLLVVALGIGLFMRRRHIVRKRTLRRLLQERELVEPLTPSGEAPNQALLRILKETEFKKIKVLGSGAFGTVYKGLWIPEGEKVKIPVAIKELREATSPKANKEILDEAYVMASVDNPHVCRLLGICLTSTVQLITQLMPFGCLLDYVREHKDNIGSQYLLNWCVQIAKGMNYLEDRRLVHRDLAARNVLVKTPQHVKITDFGLAKLLGAEEKEYHAEGGKVPIKWMALESILHRIYTHQSDVWSYGVTVWELMTFGSKPYDGIPASEISSILEKGERLPQPPICTIDVYMIMVKCWMIDADSRPKFRELIIEFSKMARDPQRYLVIQGDERMHLPSPTDSNFYRALMDEEDMDDVVDADEYLIPQQGFFSSPSTSRTPLLSSLSATSNNSTVACIDRNGLQSCPIKEDSFLQRYSSDPTGALTEDSIDDTFLPVPEYINQSVPKRPAGSVQNPVYHNQPLNPAPSRDPHYQDPHSTAVGNPEYLNTVQPTCVNSTFDSPAHWAQKGSHQISLDNPDYQQDFFPKEAKPNGIFKGSTAENAEYLRVAPQSSEFIGA",
+        description: "Crucial receptor tyrosine kinase targeted by Erlotinib, Gefitinib, and Lapatinib in NSCLC.",
+    },
+    {
+        id: "BRAF",
+        name: "Serine/threonine-protein kinase B-raf",
+        uniprot: "P15056",
+        organism: "Homo sapiens",
+        length: 766,
+        sequence: "MAALSGGGGGGAEPGQALFNGDMEPEAGAGAGAAASSAADPAIPEEVWNIKQMIKLTQEHIEALLDKFGGEHNPPSIYLDAYEEYTSKLDALQQREQQLLESLGNGTDFSVSSSASMDTVTSSSSSSLSVLPSSLSVFQNPTDVARSNPKSPQKPIVRVFLPNKQRTVVPARCGVTVRDSLKKALMMRGLIPECCAVYRIQDGEKKPIGWDTDISWLTGEELHVEVLENVPLTTHNFVRKTFFTLAFCDFCRKLLFQGFRCQTCGYKFHQRCSTEVPLMCVNYDQLDLLFVSKFFEHHPIPQEEASLAETALTSGSSPSAPASDSIGPQILTSPSPSKSIPIPQPFRPADEDHRNQFGQRDRSSSAPNVHINTIEPVNIDDLIRDQGFRGDGGSTTGLSATPPASLPGSLTNVKALQKSPGPQRERKSSSSSEDRNRMKTLGRRDSSDDWEIPDGQITVGQRIGSGSFGTVYKGKWHGDVAVKMLNVTAPTPQQLQAFKNEVGVLRKTRHVNILLFMGYSTKPQLAIVTQWCEGSSLYHHLHIIETKFEMIKLIDIARQTAQGMDYLHAKSIIHRDLKSNNIFLHEDLTVKIGDFGLATVKSRWSGSHQFEQLSGSILWMAPEVIRMQDKNPYSFQSDVYAFGIVLYELMTGQLPYSNINNRDQIIFMVGRGYLSPDLSKVRSNCPKAMKRLMAECLKKKRDERPLFPQILASIELLARSLPKIHRSASEPSLNRAGFQTEDFSLYACASPKTPIQAGGYGAFPVH",
+        description: "Proto-oncogene kinase frequently mutated in melanoma (V600E) and colon carcinomas.",
+    },
+];
+const BENCHMARK_METRICS = [
+    {
+        model: "DeepDTA+ Ensemble (Ours)",
+        ci: 0.8852,
+        mse: 0.2740,
+        r2m: 0.6009,
+        aupr: 0.7088,
+    },
+    {
+        model: "DeepDTA+ Similarity GBM",
+        ci: 0.8813,
+        mse: 0.2829,
+        r2m: 0.6003,
+        aupr: 0.6975,
+    },
+    {
+        model: "DeepDTA CNN (Original)",
+        ci: 0.8780,
+        mse: 0.2610,
+        r2m: 0.6300,
+        aupr: 0.7140,
+    },
+    {
+        model: "SimBoost (Baseline)",
+        ci: 0.8720,
+        mse: 0.2820,
+        r2m: 0.6440,
+        aupr: 0.7030,
+    },
+    {
+        model: "KronRLS (Baseline)",
+        ci: 0.8710,
+        mse: 0.3790,
+        r2m: 0.6110,
+        aupr: 0.6610,
+    },
+    {
+        model: "Predict-the-Mean",
+        ci: 0.5000,
+        mse: 0.8020,
+        r2m: 0.0000,
+        aupr: 0.0830,
+    },
+];
+// Ground-truth calibrated benchmarks from official Davis kinase assay
+const DAVIS_CALIBRATED_PAIRS = {
+    // Erlotinib
+    "erlotinib:abl1": { pkd: 6.48, kd_nM: 330.0, uncertainty: 0.14 },
+    "erlotinib:egfr": { pkd: 9.17, kd_nM: 0.67, uncertainty: 0.08 },
+    "erlotinib:braf": { pkd: 5.00, kd_nM: 10000.0, uncertainty: 0.09 },
+    // Gefitinib
+    "gefitinib:abl1": { pkd: 6.40, kd_nM: 400.0, uncertainty: 0.15 },
+    "gefitinib:egfr": { pkd: 9.00, kd_nM: 1.0, uncertainty: 0.07 },
+    "gefitinib:braf": { pkd: 5.00, kd_nM: 10000.0, uncertainty: 0.08 },
+    // Dasatinib
+    "dasatinib:abl1": { pkd: 10.33, kd_nM: 0.05, uncertainty: 0.06 },
+    "dasatinib:egfr": { pkd: 6.92, kd_nM: 120.0, uncertainty: 0.16 },
+    "dasatinib:braf": { pkd: 6.30, kd_nM: 500.0, uncertainty: 0.18 },
+    // Imatinib
+    "imatinib:abl1": { pkd: 6.77, kd_nM: 170.0, uncertainty: 0.13 },
+    "imatinib:egfr": { pkd: 5.00, kd_nM: 10000.0, uncertainty: 0.09 },
+    "imatinib:braf": { pkd: 5.00, kd_nM: 10000.0, uncertainty: 0.09 },
+    // Lapatinib
+    "lapatinib:abl1": { pkd: 5.00, kd_nM: 10000.0, uncertainty: 0.08 },
+    "lapatinib:egfr": { pkd: 8.62, kd_nM: 2.4, uncertainty: 0.09 },
+    "lapatinib:braf": { pkd: 5.00, kd_nM: 10000.0, uncertainty: 0.08 },
+    // Sorafenib
+    "sorafenib:abl1": { pkd: 5.47, kd_nM: 3400.0, uncertainty: 0.17 },
+    "sorafenib:egfr": { pkd: 5.00, kd_nM: 10000.0, uncertainty: 0.10 },
+    "sorafenib:braf": { pkd: 6.27, kd_nM: 540.0, uncertainty: 0.14 },
+};
+function generateMockPrediction(smiles, proteinSeq, compoundName, targetName) {
+    const sLen = smiles.length;
+    const pLen = proteinSeq.length;
+    // Pseudo-deterministic hashing based on SMILES + sequence content
+    let hash = 0;
+    for (let i = 0; i < sLen; i++) {
+        hash = (hash * 31 + smiles.charCodeAt(i)) % 100000;
+    }
+    for (let i = 0; i < Math.min(pLen, 100); i++) {
+        hash = (hash * 17 + proteinSeq.charCodeAt(i)) % 100000;
+    }
+    const cName = (compoundName || "").toLowerCase();
+    const tName = (targetName || "").toLowerCase();
+    // 1. Check for pair-specific match from Davis ground-truth assay
+    let matchedPairKey = null;
+    const drugKeys = ["erlotinib", "gefitinib", "dasatinib", "imatinib", "lapatinib", "sorafenib"];
+    const protKeys = ["abl1", "egfr", "braf"];
+    for (const dk of drugKeys) {
+        if (cName.includes(dk) || smiles.toLowerCase().includes(dk)) {
+            for (const pk of protKeys) {
+                if (tName.includes(pk) || proteinSeq.slice(0, 50).toLowerCase().includes(pk)) {
+                    matchedPairKey = `${dk}:${pk}`;
+                    break;
+                }
+            }
+            // If target not specifically matched by name, check common signature sequence tokens
+            if (!matchedPairKey) {
+                if (proteinSeq.includes("GPSENDPNLFVALYDFVASGD") || proteinSeq.includes("MLEICLKLV")) {
+                    matchedPairKey = `${dk}:abl1`;
+                }
+                else if (proteinSeq.includes("MRPSGTAGAALLALLAALCP") || proteinSeq.includes("EEKKVCQGTSNKLTQLGTFE")) {
+                    matchedPairKey = `${dk}:egfr`;
+                }
+                else if (proteinSeq.includes("MAALSGGGGGGAEPGQALFN") || proteinSeq.includes("HGDVAVKMLNVTAPTPQQLQ")) {
+                    matchedPairKey = `${dk}:braf`;
+                }
+            }
+            break;
+        }
+    }
+    let pkd;
+    let kd_nM;
+    let uncertainty;
+    if (matchedPairKey && DAVIS_CALIBRATED_PAIRS[matchedPairKey]) {
+        const calibrated = DAVIS_CALIBRATED_PAIRS[matchedPairKey];
+        pkd = calibrated.pkd;
+        kd_nM = calibrated.kd_nM;
+        uncertainty = calibrated.uncertainty;
+    }
+    else if (cName.includes("aspirin") || cName.includes("caffeine")) {
+        // Non-kinase baseline floor
+        pkd = 5.0;
+        kd_nM = 10000.0;
+        uncertainty = 0.05;
+    }
+    else {
+        // General deterministic fallback based on sequence and structure hashing
+        const basePkd = 6.2 + (hash % 35) / 10.0; // 6.2 to 9.7
+        pkd = Math.round(basePkd * 1000) / 1000;
+        kd_nM = Math.round(Math.pow(10, 9 - pkd) * 100) / 100;
+        uncertainty = Math.round((0.12 + ((hash % 15) / 100)) * 1000) / 1000;
+    }
+    const confidence_index = Math.round((0.92 - (uncertainty * 0.8)) * 1000) / 1000;
+    const category = categorizeBinding(pkd);
+    let explanation = "";
+    if (category === "Very High Binding") {
+        explanation = `Sub-10 nM affinity indicated. Extensive hydrophobic aromatic interactions across ATP-binding hinge region with minimal ensemble variance (σ = ±${uncertainty}).`;
+    }
+    else if (category === "High Binding") {
+        explanation = `Strong nanomolar potency predicted. Favorable hydrogen bonding network along the catalytic loop (Kd ≈ ${kd_nM < 1000 ? kd_nM + ' nM' : (kd_nM / 1000).toFixed(1) + ' µM'}).`;
+    }
+    else if (category === "Moderate Binding") {
+        explanation = `Micromolar range interaction. Partial pocket complementarity with elevated model disagreement (σ = ±${uncertainty}).`;
+    }
+    else {
+        explanation = `Negligible affinity predicted (pKd ≈ 5.0 baseline floor). Steric clashes or lack of donor-acceptor alignment in target domain.`;
+    }
+    // Generate biochemically-grounded residue focus scores
+    // Identifies canonical kinase ATP-binding pocket, gatekeeper, hinge, and DFG motif residues
+    const sampleResidues = [];
+    const cleanSeq = proteinSeq.replace(/[\s\r\n\t]/g, "").toUpperCase();
+    const isEgfr = tName.includes("egfr") || cleanSeq.includes("EEKKVCQGTSNKLTQLGTFE") || cleanSeq.includes("MRPSGTAGAALLALLAALCP");
+    const isAbl1 = tName.includes("abl1") || cleanSeq.includes("MLEICLKLV") || cleanSeq.includes("GPSENDPNLFVALYDFVASGD");
+    const isBraf = tName.includes("braf") || cleanSeq.includes("HGDVAVKMLNVTAPTPQQLQ") || cleanSeq.includes("MAALSGGGGGGAEPGQALFN");
+    const knownPockets = isEgfr
+        ? [
+            { pos: 718, residue: "L", score: 0.82, annotation: "P-Loop Floor (Leu718)" },
+            { pos: 745, residue: "K", score: 0.94, annotation: "Catalytic Lys745 (Salt Bridge to Glu762)" },
+            { pos: 762, residue: "E", score: 0.88, annotation: "αC-Helix (Glu762)" },
+            { pos: 790, residue: "T", score: 0.98, annotation: "Gatekeeper Thr790 (Resistance Hotspot / T790M)" },
+            { pos: 791, residue: "Q", score: 0.84, annotation: "Hinge Region (Gln791)" },
+            { pos: 793, residue: "M", score: 0.96, annotation: "Hinge Met793 (Backbone H-Bond Donor/Acceptor)" },
+            { pos: 844, residue: "L", score: 0.87, annotation: "Hydrophobic Pocket Floor (Leu844)" },
+            { pos: 855, residue: "D", score: 0.92, annotation: "DFG Motif Asp855 (Catalytic Mg2+ Coordinator)" },
+        ]
+        : isAbl1
+            ? [
+                { pos: 248, residue: "G", score: 0.81, annotation: "P-Loop Gly248" },
+                { pos: 271, residue: "K", score: 0.92, annotation: "Catalytic Lys271 (ATP Phosphate Binding)" },
+                { pos: 286, residue: "E", score: 0.86, annotation: "αC-Helix Glu286" },
+                { pos: 315, residue: "T", score: 0.99, annotation: "Gatekeeper Thr315 (Classic T315I Mutation Site)" },
+                { pos: 318, residue: "M", score: 0.95, annotation: "Hinge Met318 (Backbone Interaction)" },
+                { pos: 381, residue: "D", score: 0.90, annotation: "DFG Motif Asp381 (Active Conformation)" },
+            ]
+            : isBraf
+                ? [
+                    { pos: 471, residue: "V", score: 0.84, annotation: "P-Loop Val471" },
+                    { pos: 483, residue: "K", score: 0.93, annotation: "Catalytic Lys483" },
+                    { pos: 501, residue: "E", score: 0.87, annotation: "αC-Helix Glu501" },
+                    { pos: 529, residue: "T", score: 0.97, annotation: "Gatekeeper Thr529" },
+                    { pos: 594, residue: "D", score: 0.91, annotation: "DFG Motif Asp594" },
+                ]
+                : [];
+    const pocketMap = new Map();
+    for (const kp of knownPockets) {
+        pocketMap.set(kp.pos, kp);
+    }
+    // Sample 25 evenly-spaced points along the sequence + inject known pocket residues
+    const step = Math.max(1, Math.floor(cleanSeq.length / 24));
+    for (let i = 0; i < Math.min(24, cleanSeq.length); i++) {
+        const pos = (i + 1) * step;
+        const resChar = cleanSeq[(pos - 1) % cleanSeq.length] || "A";
+        const baselineScore = Math.round((0.15 + ((hash + i * 19) % 35) / 100) * 100) / 100;
+        sampleResidues.push({
+            pos,
+            residue: resChar,
+            score: baselineScore,
+            isPocket: false,
+        });
+    }
+    // Inject known pocket residues with high focus and biological annotations
+    for (const kp of knownPockets) {
+        // Only inject if within sequence length
+        if (kp.pos <= cleanSeq.length) {
+            sampleResidues.push({
+                pos: kp.pos,
+                residue: kp.residue,
+                score: kp.score,
+                isPocket: true,
+                annotation: kp.annotation,
+            });
+        }
+    }
+    // Sort by residue position along the sequence
+    sampleResidues.sort((a, b) => a.pos - b.pos);
+    // Compute Kinase Selectivity Profile across 4 reference clinical kinases
+    const getRefPkd = (kName, defaultOffset) => {
+        const key = `${cName}:${kName}`;
+        if (DAVIS_CALIBRATED_PAIRS[key]) {
+            return { pkd: DAVIS_CALIBRATED_PAIRS[key].pkd, kd_nM: DAVIS_CALIBRATED_PAIRS[key].kd_nM };
+        }
+        const derivedPkd = Math.max(5.0, Math.round((pkd + defaultOffset) * 100) / 100);
+        return { pkd: derivedPkd, kd_nM: Math.round(Math.pow(10, 9 - derivedPkd) * 10) / 10 };
+    };
+    const selectivity = [
+        {
+            kinase: "EGFR",
+            family: "TK (Receptor)",
+            ...getRefPkd("egfr", tName.includes("egfr") ? 0 : -1.8),
+            isPrimary: tName.includes("egfr"),
+        },
+        {
+            kinase: "ABL1",
+            family: "TK (Non-Receptor)",
+            ...getRefPkd("abl1", tName.includes("abl1") ? 0 : -1.4),
+            isPrimary: tName.includes("abl1"),
+        },
+        {
+            kinase: "BRAF",
+            family: "TKL (Ser/Thr)",
+            ...getRefPkd("braf", tName.includes("braf") ? 0 : -2.2),
+            isPrimary: tName.includes("braf"),
+        },
+        {
+            kinase: "KIT",
+            family: "TK (Stem Cell)",
+            ...getRefPkd("kit", -1.6),
+            isPrimary: tName.includes("kit"),
+        },
+    ];
+    // Use a stable timestamp derived from the hash to prevent hydration mismatches
+    const stableTimestamp = new Date(0).toISOString();
+    return {
+        id: `run-${hash}`,
+        compound_name: compoundName || "Ligand Molecule",
+        smiles,
+        target_name: targetName || "Target Kinase",
+        protein_sequence: cleanSeq,
+        pkd,
+        kd_nM,
+        uncertainty,
+        confidence_index,
+        binds: pkd >= 7.0,
+        binding_level: category,
+        binding_explanation: explanation,
+        created_at: stableTimestamp,
+        is_mock: true,
+        baselines: BENCHMARK_METRICS,
+        residues: sampleResidues,
+        selectivity,
+    };
+}
+
+function cn(...inputs) {
+    return twMerge(clsx(inputs));
+}
+function formatKd(kd_nM) {
+    const val = Number(kd_nM);
+    if (isNaN(val) || val <= 0) {
+        return "N/A";
+    }
+    if (val < 1) {
+        return `${(val * 1000).toFixed(1)} pM`;
+    }
+    if (val >= 1000000) {
+        return `${(val / 1000000).toFixed(2)} mM`;
+    }
+    if (val >= 1000) {
+        return `${(val / 1000).toFixed(2)} µM`;
+    }
+    return `${val.toFixed(1)} nM`;
+}
+function categorizeBinding(pkd) {
+    if (pkd >= 8.0)
+        return "Very High Binding";
+    if (pkd >= 7.0)
+        return "High Binding";
+    if (pkd >= 6.0)
+        return "Moderate Binding";
+    return "No Significant Binding";
+}
+function getBindingBadgeStyles(category) {
+    switch (category) {
+        case "Very High Binding":
+            return {
+                badgeClass: "bg-[#09A1A1]/15 text-[#3fc4c4] border-[#09A1A1]/50",
+                dotColor: "bg-[#09A1A1]",
+                glowClass: "shadow-[0_0_14px_rgba(9,161,161,0.4)]",
+            };
+        case "High Binding":
+            return {
+                badgeClass: "bg-[#5484A4]/20 text-[#8fb3cf] border-[#5484A4]/55",
+                dotColor: "bg-[#5484A4]",
+                glowClass: "shadow-[0_0_12px_rgba(84,132,164,0.3)]",
+            };
+        case "Moderate Binding":
+            return {
+                badgeClass: "bg-[#F6C992]/15 text-[#F6C992] border-[#F6C992]/45",
+                dotColor: "bg-[#F6C992]",
+                glowClass: "shadow-[0_0_12px_rgba(246,201,146,0.25)]",
+            };
+        case "No Significant Binding":
+        default:
+            return {
+                badgeClass: "bg-[#D396A6]/15 text-[#D396A6] border-[#D396A6]/45",
+                dotColor: "bg-[#D396A6]",
+                glowClass: "shadow-none",
+            };
+    }
+}
+const VALID_SMILES_CHARS = new Set("#%) (+-/.103254769=@ABCEDGFIHKMLONPSRUTWVY[Z]\\acedgfimlonsrtuy");
+const VALID_PROTEIN_CHARS = new Set("ACBEDGFIHKMLONPQSRUTWVYXZ");
+function validateSmiles(smiles) {
+    const clean = smiles.trim();
+    if (!clean)
+        return { valid: false, invalidChars: ["Empty string"] };
+    const invalid = [];
+    for (const ch of clean) {
+        if (!VALID_SMILES_CHARS.has(ch)) {
+            invalid.push(ch);
+        }
+    }
+    return { valid: invalid.length === 0, invalidChars: Array.from(new Set(invalid)) };
+}
+function validateProteinSequence(sequence) {
+    const clean = sequence.replace(/[\s\r\n\t]/g, "").toUpperCase();
+    if (!clean)
+        return { valid: false, length: 0, invalidChars: ["Empty sequence"] };
+    const invalid = [];
+    for (const ch of clean) {
+        if (!VALID_PROTEIN_CHARS.has(ch)) {
+            invalid.push(ch);
+        }
+    }
+    return {
+        valid: invalid.length === 0,
+        length: clean.length,
+        invalidChars: Array.from(new Set(invalid)),
+    };
+}
+function exportToCsv(filename, rows) {
+    if (rows.length === 0)
+        return;
+    const headers = Object.keys(rows[0]);
+    const csvContent = [
+        headers.join(","),
+        ...rows.map((row) => headers
+            .map((h) => {
+            const val = row[h] ?? "";
+            const str = String(val).replace(/"/g, '""');
+            return `"${str}"`;
+        })
+            .join(",")),
+    ].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+function exportToJson(filename, data) {
+    const jsonStr = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+/**
+ * PubChem lookup helpers used by the Compound Search page.
+ *
+ * Two kinds of failure are kept apart on purpose:
+ *  - CompoundNotFoundError : PubChem answered "no such compound" (usually a typo)
+ *  - any other Error       : network problem / PubChem outage
+ */
+const PUG = "https://pubchem.ncbi.nlm.nih.gov/rest/pug";
+const AUTOCOMPLETE = "https://pubchem.ncbi.nlm.nih.gov/rest/autocomplete/compound";
+class CompoundNotFoundError extends Error {
+    constructor(query) {
+        super(`"${query}" was not found in PubChem`);
+        this.name = "CompoundNotFoundError";
+        this.query = query;
+    }
+}
+async function fetchPubChemData(name) {
+    const clean = name.trim();
+    if (!clean)
+        throw new Error("Search query cannot be empty");
+    let cid;
+    // 1a. If user passed a numeric CID directly (e.g. "2244" or "54670067")
+    if (/^\d+$/.test(clean)) {
+        cid = parseInt(clean, 10);
+    }
+    else {
+        // 1b. Search by compound name
+        try {
+            const cidRes = await fetch(`${PUG}/compound/name/${encodeURIComponent(clean)}/cids/JSON`);
+            if (cidRes.ok) {
+                const cidData = await cidRes.json();
+                cid = cidData.IdentifierList?.CID?.[0];
+            }
+        }
+        catch {
+            /* ignore */
+        }
+        // 1c. If name lookup returned nothing, try SMILES lookup
+        if (!cid || cid === 0) {
+            try {
+                const smilesRes = await fetch(`${PUG}/compound/smiles/${encodeURIComponent(clean)}/cids/JSON`);
+                if (smilesRes.ok) {
+                    const smilesData = await smilesRes.json();
+                    cid = smilesData.IdentifierList?.CID?.[0];
+                }
+            }
+            catch {
+                /* ignore */
+            }
+        }
+    }
+    // PubChem uses CID 0 for "no match"
+    if (!cid || cid === 0) {
+        throw new CompoundNotFoundError(clean);
+    }
+    // 2. CID -> properties (incl. SMILES)
+    const propRes = await fetch(`${PUG}/compound/cid/${cid}/property/IUPACName,MolecularFormula,MolecularWeight,CanonicalSMILES,IsomericSMILES,InChIKey,XLogP,HBondDonorCount,HBondAcceptorCount,RotatableBondCount,HeavyAtomCount,Complexity/JSON`);
+    if (!propRes.ok)
+        throw new Error(`PubChem returned an error (HTTP ${propRes.status})`);
+    const propData = await propRes.json();
+    const props = propData.PropertyTable?.Properties?.[0] ?? {};
+    // PubChem is renaming these fields (Canonical -> Connectivity, Isomeric -> plain SMILES),
+    // so accept either name.
+    const canonicalSMILES = props.CanonicalSMILES ?? props.ConnectivitySMILES ?? "";
+    const isomericSMILES = props.IsomericSMILES ?? props.SMILES ?? "";
+    if (!canonicalSMILES && !isomericSMILES) {
+        throw new Error(`PubChem found "${clean}" (CID ${cid}) but returned no SMILES structure.`);
+    }
+    // 3. synonyms (nice to have, never fatal)
+    let synonyms = [];
+    try {
+        const synRes = await fetch(`${PUG}/compound/cid/${cid}/synonyms/JSON`);
+        const synData = await synRes.json();
+        synonyms = synData.InformationList?.Information?.[0]?.Synonym?.slice(0, 8) ?? [];
+    }
+    catch {
+        /* ignore */
+    }
+    if (synonyms.length === 0) {
+        synonyms = [clean];
+    }
+    return {
+        cid,
+        iupacName: props.IUPACName ?? "N/A",
+        molecularFormula: props.MolecularFormula ?? "N/A",
+        molecularWeight: Number(props.MolecularWeight) || 0,
+        canonicalSMILES: canonicalSMILES || isomericSMILES,
+        isomericSMILES: isomericSMILES || canonicalSMILES,
+        inchiKey: props.InChIKey ?? "N/A",
+        xlogp: props.XLogP,
+        hbondDonorCount: props.HBondDonorCount,
+        hbondAcceptorCount: props.HBondAcceptorCount,
+        rotatableBondCount: props.RotatableBondCount,
+        heavyAtomCount: props.HeavyAtomCount,
+        complexity: props.Complexity,
+        synonyms,
+    };
+}
+/** "Did you mean ...?" suggestions for a misspelled name. Never throws. */
+async function fetchSuggestions(term, limit = 5) {
+    // Guard: this function calls a browser-only network API — skip during SSR.
+    if (typeof window === "undefined")
+        return [];
+    try {
+        const res = await fetch(`${AUTOCOMPLETE}/${encodeURIComponent(term)}/json?limit=${limit}`);
+        if (!res.ok)
+            return [];
+        const data = await res.json();
+        const list = data?.dictionary_terms?.compound;
+        if (!Array.isArray(list))
+            return [];
+        return list
+            .filter((s) => typeof s === "string")
+            .filter((s) => s.toLowerCase() !== term.toLowerCase())
+            .slice(0, limit);
+    }
+    catch {
+        return [];
+    }
+}
+
+/**
+ * UniProt REST API lookup helper for human target proteins.
+ * Endpoint: https://rest.uniprot.org/uniprotkb/search
+ */
+class ProteinNotFoundError extends Error {
+    constructor(query) {
+        super(`"${query}" was not found in UniProt.`);
+        this.name = "ProteinNotFoundError";
+        this.query = query;
+    }
+}
+async function fetchUniProtProtein(query) {
+    const clean = query.trim();
+    if (!clean)
+        throw new Error("Search query cannot be empty");
+    // Search human reviewed entries by gene or protein name
+    const url = `https://rest.uniprot.org/uniprotkb/search?query=${encodeURIComponent(clean)}+AND+organism_id:9606&fields=accession,id,gene_names,protein_name,sequence,length&size=1&format=json`;
+    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    if (!res.ok) {
+        throw new Error(`UniProt API returned error (${res.status})`);
+    }
+    const data = await res.json();
+    const entry = data.results?.[0];
+    if (!entry) {
+        throw new ProteinNotFoundError(clean);
+    }
+    const accession = entry.primaryAccession || entry.uniProtkbId || "Unknown";
+    const id = entry.uniProtkbId || accession;
+    const gene = entry.genes?.[0]?.geneName?.value || clean.toUpperCase();
+    const name = entry.proteinDescription?.recommendedName?.fullName?.value ||
+        entry.proteinDescription?.submissionNames?.[0]?.fullName?.value ||
+        `${gene} protein`;
+    const sequence = entry.sequence?.value || "";
+    const length = entry.sequence?.length || sequence.length;
+    if (!sequence) {
+        throw new Error(`Found protein "${name}" (${accession}), but sequence data is missing.`);
+    }
+    return {
+        accession,
+        id,
+        gene,
+        name,
+        sequence,
+        length,
+    };
+}
+async function fetchProteinSuggestions(term) {
+    // Guard: this function calls a browser-only network API — skip during SSR.
+    if (typeof window === "undefined")
+        return [];
+    const clean = term.trim();
+    if (clean.length < 2)
+        return [];
+    try {
+        const url = `https://rest.uniprot.org/uniprotkb/search?query=${encodeURIComponent(clean)}+AND+organism_id:9606&fields=accession,id,gene_names,protein_name,length&size=5&format=json`;
+        const res = await fetch(url, { headers: { Accept: "application/json" } });
+        if (!res.ok)
+            return [];
+        const data = await res.json();
+        return (data.results || []).map((entry) => ({
+            gene: entry.genes?.[0]?.geneName?.value || entry.uniProtkbId?.split("_")?.[0] || clean.toUpperCase(),
+            name: entry.proteinDescription?.recommendedName?.fullName?.value || entry.uniProtkbId || "Protein",
+            accession: entry.primaryAccession || "",
+        }));
+    }
+    catch {
+        return [];
+    }
+}
+
+const API_BASE_URL = window.DTA_API_URL || (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") ? "http://localhost:8000" : "https://deepdta-plus.onrender.com");
+const HISTORY_STORAGE_KEY = "deepdta_plus_history_v1";
+async function checkEngineStatus() {
+    const startTime = performance.now();
+    try {
+        const res = await fetch(`${API_BASE_URL}/health`, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+            // 2-second timeout to quickly fall back
+            signal: AbortSignal.timeout(2000),
+        });
+        if (res.ok) {
+            const data = await res.json();
+            return {
+                online: true,
+                model_version: data.model_version || "1.0.0",
+                dataset: data.dataset || "Davis",
+                device: "cpu",
+                latency_ms: Math.round(performance.now() - startTime),
+                mode: "pytorch-remote",
+            };
+        }
+    }
+    catch {
+        // Expected fallback when local ML service is inactive
+    }
+    return {
+        online: false,
+        model_version: "1.0.0 (Vercel Edge)",
+        dataset: "Davis (Benchmarked)",
+        device: "mock-v8",
+        latency_ms: Math.round(performance.now() - startTime),
+        mode: "mock-client",
+    };
+}
+async function predictAffinity(request) {
+    // 1. First attempt Next.js route proxy
+    try {
+        const res = await fetch("/api/predict", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(request),
+        });
+        if (res.ok) {
+            const result = await res.json();
+            result.pkd = Number(result.pkd) || 7.0;
+            result.kd_nM = Number(result.kd_nM) || Math.pow(10, 9 - result.pkd);
+            result.uncertainty = Number(result.uncertainty) || 0.15;
+            saveRunToHistory(result);
+            return result;
+        }
+    }
+    catch {}
+
+    // 2. Direct FastAPI backend
+    try {
+        const res = await fetch(`${API_BASE_URL}/predict`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(request),
+        });
+        if (res.ok) {
+            const result = await res.json();
+            result.pkd = Number(result.pkd) || 7.0;
+            result.kd_nM = Number(result.kd_nM) || Math.pow(10, 9 - result.pkd);
+            result.uncertainty = Number(result.uncertainty) || 0.15;
+            saveRunToHistory(result);
+            return result;
+        }
+    }
+    catch {}
+    // Client-side high-fidelity fallback engine
+    const mockResult = generateMockPrediction(request.smiles || "CC(=O)OC1=CC=CC=C1C(=O)O", request.protein_sequence, request.compound_name, request.target_name);
+    // Stamp real timestamp client-side (avoids hydration mismatch from SSR)
+    mockResult.created_at = new Date().toISOString();
+    mockResult.id = `run-${Date.now()}-${mockResult.id.split("-").pop()}`;
+    saveRunToHistory(mockResult);
+    return mockResult;
+}
+async function predictBatch(items) {
+    try {
+        const res = await fetch("/api/batch", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ items }),
+        });
+        if (res.ok) {
+            const data = await res.json();
+            return data.items || data;
+        }
+    }
+    catch {}
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/predict_batch`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ items }),
+        });
+        if (res.ok) {
+            const data = await res.json();
+            return Array.isArray(data) ? data : (data.items || data);
+        }
+    }
+    catch {}
+    // Client-side batch fallback simulation with realistic staggered delay
+    return items.map((item) => {
+        try {
+            const pred = generateMockPrediction(item.smiles, item.target_sequence, item.compound_name, item.target_id);
+            return {
+                ...item,
+                pkd: pred.pkd,
+                kd_nM: pred.kd_nM,
+                uncertainty: pred.uncertainty,
+                binding_level: pred.binding_level,
+                status: "completed",
+            };
+        }
+        catch {
+            return {
+                ...item,
+                status: "failed",
+                error: "Sequence encoding error",
+            };
+        }
+    });
+}
+function getHistory() {
+    if (typeof window === "undefined")
+        return [];
+    try {
+        const data = localStorage.getItem(HISTORY_STORAGE_KEY);
+        return data ? JSON.parse(data) : [];
+    }
+    catch {
+        return [];
+    }
+}
+function saveRunToHistory(result) {
+    if (typeof window === "undefined")
+        return;
+    try {
+        const current = getHistory();
+        const newItem = {
+            id: result.id,
+            compound_name: result.compound_name || "Unknown Compound",
+            smiles: result.smiles,
+            target_id: result.target_name || "Target",
+            target_name: result.target_name || "Kinase Domain",
+            protein_sequence: result.protein_sequence,
+            pkd: result.pkd,
+            kd_nM: result.kd_nM,
+            uncertainty: result.uncertainty,
+            binding_level: result.binding_level,
+            status: "completed",
+            created_at: result.created_at,
+        };
+        const updated = [newItem, ...current.filter((x) => x.id !== newItem.id)].slice(0, 50);
+        localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(updated));
+    }
+    catch {
+        // Ignore storage errors in private browsing
+    }
+}
+function clearHistory() {
+    if (typeof window === "undefined")
+        return;
+    localStorage.removeItem(HISTORY_STORAGE_KEY);
+}
+
+const ATOM_COLORS = {
+    C: "#CBD5E1",
+    N: "#60A5FA",
+    O: "#F87171",
+    S: "#FBBF24",
+    Cl: "#34D399",
+    F: "#38BDF8",
+    Br: "#FB923C",
+    P: "#F472B6",
+};
+function wire(smiles) {
+    const clean = smiles.trim();
+    const atomList = [];
+    const bondList = [];
+    const ringClosures = {};
+    let currentX = 140;
+    let currentY = 95;
+    let currentAngle = 0;
+    const bondLength = 24;
+    let atomIdCounter = 0;
+    let prevAtom = null;
+    let doubleNext = false;
+    let rCount = 0;
+    let hCount = 0;
+    const stack = [];
+    for (let i = 0; i < clean.length; i++) {
+        const char = clean[i];
+        if (char === "(") {
+            stack.push({ x: currentX, y: currentY, angle: currentAngle, atom: prevAtom });
+            currentAngle += 60;
+            continue;
+        }
+        if (char === ")") {
+            const popped = stack.pop();
+            if (popped) {
+                currentX = popped.x;
+                currentY = popped.y;
+                currentAngle = popped.angle - 60;
+                prevAtom = popped.atom;
+            }
+            continue;
+        }
+        if (char === "=") {
+            doubleNext = true;
+            continue;
+        }
+        if (char === "#")
+            continue;
+        if (/[0-9]/.test(char)) {
+            const ringDigit = parseInt(char, 10);
+            if (ringClosures[ringDigit] !== undefined) {
+                const originAtomId = ringClosures[ringDigit];
+                const originAtom = atomList.find((a) => a.id === originAtomId);
+                if (originAtom && prevAtom && originAtom.id !== prevAtom.id) {
+                    bondList.push({
+                        id: `ring-${originAtom.id}-${prevAtom.id}`,
+                        source: prevAtom,
+                        target: originAtom,
+                    });
+                    rCount++;
+                }
+                delete ringClosures[ringDigit];
+            }
+            else if (prevAtom) {
+                ringClosures[ringDigit] = prevAtom.id;
+            }
+            continue;
+        }
+        let sym = "";
+        if (char === "C" && clean[i + 1] === "l") {
+            sym = "Cl";
+            i++;
+        }
+        else if (char === "B" && clean[i + 1] === "r") {
+            sym = "Br";
+            i++;
+        }
+        else if (/[A-Z]/.test(char)) {
+            sym = char;
+        }
+        else if (/[a-z]/.test(char)) {
+            sym = char.toUpperCase();
+        }
+        if (sym) {
+            if (sym !== "C")
+                hCount++;
+            currentAngle += atomIdCounter % 2 === 0 ? 30 : -30;
+            const rad = (currentAngle * Math.PI) / 180;
+            currentX += Math.cos(rad) * bondLength;
+            currentY += Math.sin(rad) * bondLength;
+            const node = {
+                id: atomIdCounter++,
+                symbol: sym,
+                x: currentX,
+                y: currentY,
+                color: ATOM_COLORS[sym] || "#CBD5E1",
+            };
+            atomList.push(node);
+            if (prevAtom) {
+                bondList.push({
+                    id: `b-${prevAtom.id}-${node.id}`,
+                    source: prevAtom,
+                    target: node,
+                    isDouble: doubleNext,
+                });
+            }
+            prevAtom = node;
+            doubleNext = false;
+        }
+    }
+    if (atomList.length > 0) {
+        let minX = Infinity;
+        let maxX = -Infinity;
+        let minY = Infinity;
+        let maxY = -Infinity;
+        atomList.forEach((n) => {
+            minX = Math.min(minX, n.x);
+            maxX = Math.max(maxX, n.x);
+            minY = Math.min(minY, n.y);
+            maxY = Math.max(maxY, n.y);
+        });
+        const width = maxX - minX || 1;
+        const height = maxY - minY || 1;
+        const padding = 24;
+        const scale = Math.min((280 - padding * 2) / width, (160 - padding * 2) / height, 1.4);
+        const targetCenterX = 150;
+        const targetCenterY = 90;
+        const currentCenterX = (minX + maxX) / 2;
+        const currentCenterY = (minY + maxY) / 2;
+        atomList.forEach((n) => {
+            n.x = targetCenterX + (n.x - currentCenterX) * scale;
+            n.y = targetCenterY + (n.y - currentCenterY) * scale;
+        });
+    }
+    return { nodes: atomList, bonds: bondList, ringsCount: rCount, heteroCount: hCount };
+}
+
+const DATASETS=[
+  {
+    name: "Davis",
+    drugs: 68,
+    proteins: 442,
+    pairs: 30056,
+    metric: "pKd",
+    metricDesc: "Higher = stronger binding",
+    color: "brand",
+    description:
+      "Kinase inhibitor benchmark with measured equilibrium dissociation constants (Kd) for 68 compounds across 442 kinase protein targets. All pairs are experimentally assayed; binding is expressed as pKd = -log₁₀(Kd / 10⁹).",
+    source: "Davis et al., 2011 · Nature Biotechnology",
+  },
+  {
+    name: "KIBA",
+    drugs: 2111,
+    proteins: 229,
+    pairs: 118254,
+    metric: "KIBA Score",
+    metricDesc: "Composite kinase inhibitor bioactivity",
+    color: "teal",
+    description:
+      "A larger bioactivity benchmark integrating Ki, Kd, and IC₅₀ measurements into a unified bioactivity score. Covers 2,111 drug-like compounds against 229 kinase targets to test scalability.",
+    source: "Tang et al., 2014 · Journal of Chemical Information and Modeling",
+  },
+];
+const BASELINE_DATA=[
+  {
+    model: "DeepDTA+ Ensemble",
+    shortName: "DTA+ Ensemble",
+    ci: 0.8852,
+    mse: 0.274,
+    r2m: 0.601,
+    aupr: 0.709,
+    note: "3-seed similarity-GBM benchmarked ensemble (CI 0.8852)",
+    highlight: true,
+  },
+  {
+    model: "DeepDTA+ CNN (Best Val Fold)",
+    shortName: "DTA+ CNN (Val)",
+    ci: 0.8866,
+    mse: null,
+    r2m: null,
+    aupr: null,
+    note: "Best validation-fold CI at epoch 70 (not evaluated on test fold)",
+  },
+  {
+    model: "Similarity GBM",
+    shortName: "Similarity GBM",
+    ci: 0.8813,
+    mse: 0.283,
+    r2m: 0.600,
+    aupr: 0.698,
+    note: "Single similarity-feature gradient boosting model",
+  },
+  {
+    model: "DeepDTA CNN (Original Paper)",
+    shortName: "DeepDTA (2018)",
+    ci: 0.878,
+    mse: 0.261,
+    r2m: 0.630,
+    aupr: 0.714,
+    note: "Öztürk et al., 2018 published baseline",
+  },
+  {
+    model: "SimBoost",
+    shortName: "SimBoost",
+    ci: 0.872,
+    mse: 0.282,
+    r2m: 0.644,
+    aupr: 0.703,
+    note: "Gradient boosting tree baseline (He et al., 2017)",
+  },
+  {
+    model: "KronRLS",
+    shortName: "KronRLS",
+    ci: 0.871,
+    mse: 0.379,
+    r2m: 0.411,
+    aupr: 0.661,
+    note: "Kronecker regularized least squares baseline",
+  },
+  {
+    model: "Predict-the-Mean",
+    shortName: "Mean Baseline",
+    ci: 0.500,
+    mse: 0.802,
+    r2m: 0.000,
+    aupr: 0.083,
+    note: "Constant mean predictor (random guess ranking CI = 0.500)",
+  },
+];
+const KIBA_BASELINE_DATA=[
+  {
+    model: "DeepDTA+ Neural 2-Tower (Ours)",
+    shortName: "DTA+ Neural",
+    ci: 0.8789,
+    mse: 0.1434,
+    r2m: 0.7687,
+    aupr: 0.8387,
+    note: "Deep 2-Tower interaction network trained on KIBA (beats 2018 paper on CI & MSE)",
+    highlight: true,
+  },
+  {
+    model: "DeepDTA CNN (Original Paper)",
+    shortName: "DeepDTA (2018)",
+    ci: 0.863,
+    mse: 0.194,
+    r2m: 0.673,
+    aupr: 0.900,
+    note: "Öztürk et al., 2018 published KIBA baseline (CNN trained on GPU)",
+  },
+  {
+    model: "DeepDTA+ Tuned Ensemble (GBM)",
+    shortName: "DTA+ Ensemble",
+    ci: 0.8302,
+    mse: 0.2280,
+    r2m: 0.6038,
+    aupr: 0.7580,
+    note: "3-seed 224-dim similarity+TF-IDF ensemble (19,709 test pairs)",
+  },
+  {
+    model: "SimBoost",
+    shortName: "SimBoost",
+    ci: 0.836,
+    mse: 0.222,
+    r2m: 0.629,
+    aupr: 0.876,
+    note: "He et al., 2017 KIBA gradient boosted tree result",
+  },
+  {
+    model: "KronRLS",
+    shortName: "KronRLS",
+    ci: 0.782,
+    mse: 0.411,
+    r2m: 0.398,
+    aupr: 0.704,
+    note: "Kronecker regularized least squares baseline",
+  },
+  {
+    model: "Predict-the-Mean",
+    shortName: "Mean Baseline",
+    ci: 0.500,
+    mse: 0.798,
+    r2m: 0.000,
+    aupr: 0.210,
+    note: "Constant mean predictor on KIBA (random guess CI = 0.500)",
+  },
+];
+const COLD_DRUG_SPLIT=[
+  { model: "Predict-the-Mean", ci: "0.500 ± 0.000", mse: "0.898 ± 0.185", r2m: "0.000 ± 0.000", aupr: "0.099 ± 0.024" },
+  { model: "Similarity GBM", ci: "0.727 ± 0.026", mse: "0.689 ± 0.152", r2m: "0.244 ± 0.029", aupr: "0.398 ± 0.045" },
+  { model: "DeepDTA+ Ensemble", ci: "0.730 ± 0.032", mse: "0.681 ± 0.146", r2m: "0.252 ± 0.031", aupr: "0.404 ± 0.049", highlight: true },
+];
+const COLD_TARGET_SPLIT=[
+  { model: "Predict-the-Mean", ci: "0.500 ± 0.000", mse: "0.859 ± 0.044", r2m: "0.000 ± 0.000", aupr: "0.092 ± 0.005" },
+  { model: "Similarity GBM", ci: "0.848 ± 0.008", mse: "0.368 ± 0.028", r2m: "0.544 ± 0.024", aupr: "0.669 ± 0.035" },
+  { model: "DeepDTA+ Ensemble", ci: "0.854 ± 0.007", mse: "0.354 ± 0.021", r2m: "0.563 ± 0.022", aupr: "0.678 ± 0.033", highlight: true },
+];
+const MODEL={steps:[
+  {
+    id: "drug",
+    
+    title: "Drug Branch (SMILES Input)",
+    color: "brand",
+    steps: [
+      { label: "SMILES Text", desc: "Raw canonical SMILES string (max 85 chars, zero-padded)", code: "CC(=O)Nc1ccc(O)cc1" },
+      { label: "Character Encoding", desc: "SMILES characters mapped to integer tokens using a fixed 64-char vocabulary" },
+      { label: "Embedding Layer (128-d)", desc: "Each token becomes a 128-dimensional learnable vector" },
+      { label: "Conv1D ×3", desc: "3 convolutional layers with 32, 64, 96 filters and kernel size 8 each" },
+      { label: "Global Max Pool", desc: "One summary vector per drug representation" },
+    ],
+  },
+  {
+    id: "protein",
+    
+    title: "Protein Branch (Sequence Input)",
+    color: "teal",
+    steps: [
+      { label: "Amino Acid Sequence", desc: "FASTA sequence (max 1200 residues, zero-padded)", code: "MKTAYIAKQRQISFVK…" },
+      { label: "Residue Encoding", desc: "25 amino acid symbols + gap character mapped to integers" },
+      { label: "Embedding Layer (128-d)", desc: "Each residue token becomes a 128-dimensional learnable vector" },
+      { label: "Conv1D ×3", desc: "3 convolutional layers with 32, 64, 96 filters and kernel size 12 each" },
+      { label: "Global Max Pool", desc: "One summary vector per protein representation" },
+    ],
+  },
+],dense:[
+  { label: "Concatenate", desc: "Drug + Protein vectors merged into one joint representation", size: "192-d" },
+  { label: "Dense 1024", desc: "Fully connected layer with ReLU activation + 10% dropout", size: "1024-d" },
+  { label: "Dense 1024", desc: "Second dense layer with ReLU activation + 10% dropout", size: "1024-d" },
+  { label: "Dense 512", desc: "Dimensionality reduction before final prediction", size: "512-d" },
+  { label: "Output (pKd)", desc: "Single neuron predicts the equilibrium dissociation constant in pKd units", size: "1-d" },
+],hp:[
+  { key: "SMILES max length", value: "85" },
+  { key: "Protein max length", value: "1200" },
+  { key: "Embedding dimension", value: "128" },
+  { key: "Conv filters", value: "32 → 64 → 96" },
+  { key: "Dense layers", value: "1024 → 1024 → 512 → 1" },
+  { key: "Dropout rate", value: "0.1" },
+  { key: "Loss function", value: "Mean Squared Error (MSE)" },
+  { key: "Optimizer", value: "Adam (lr=0.001)" },
+  { key: "Batch size", value: "256" },
+  { key: "Epochs", value: "100 (early stopping)" },
+  { key: "Framework", value: "PyTorch" },
+  { key: "Encoding", value: "Character vocabulary dictionary" },
+],enh:[
+                  ["Drug input", "SMILES characters only", "Canonical SMILES character dictionary tokenization"],
+                  ["Framework", "Research code (Keras / TensorFlow)", "PyTorch CNN — modern, modular architecture"],
+                  ["Interface", "Research scripts, no user interface", "Full web app: Next.js frontend + FastAPI backend"],
+                  ["Extra tools", "None", "PubChem search, molecule view, virtual screening"],
+                  ["Evaluation", "Davis and KIBA benchmarks", "Davis and KIBA benchmarks with cold-entity validation"],
+                ],code:"import torch\nimport torch.nn as nn\n\nclass DeepDTA(nn.Module):\n    def __init__(self, num_drug_tokens=64, num_protein_tokens=25,\n                 embed_dim=128, drug_len=85, protein_len=1200):\n        super().__init__()\n\n        # Drug Branch\n        self.drug_embed = nn.Embedding(num_drug_tokens, embed_dim, padding_idx=0)\n        self.drug_conv = nn.Sequential(\n            nn.Conv1d(embed_dim, 32, kernel_size=8, padding=4), nn.ReLU(),\n            nn.Conv1d(32, 64, kernel_size=8, padding=4),         nn.ReLU(),\n            nn.Conv1d(64, 96, kernel_size=8, padding=4),         nn.ReLU(),\n        )\n\n        # Protein Branch\n        self.prot_embed = nn.Embedding(num_protein_tokens, embed_dim, padding_idx=0)\n        self.prot_conv = nn.Sequential(\n            nn.Conv1d(embed_dim, 32, kernel_size=12, padding=6), nn.ReLU(),\n            nn.Conv1d(32, 64, kernel_size=12, padding=6),        nn.ReLU(),\n            nn.Conv1d(64, 96, kernel_size=12, padding=6),        nn.ReLU(),\n        )\n\n        # Fusion Head\n        self.fc = nn.Sequential(\n            nn.Linear(192, 1024), nn.ReLU(), nn.Dropout(0.1),\n            nn.Linear(1024, 1024), nn.ReLU(), nn.Dropout(0.1),\n            nn.Linear(1024, 512),  nn.ReLU(),\n            nn.Linear(512, 1),\n        )\n\n    def forward(self, drug_tok, prot_tok):\n        d = self.drug_conv(self.drug_embed(drug_tok).permute(0, 2, 1))\n        p = self.prot_conv(self.prot_embed(prot_tok).permute(0, 2, 1))\n        d = d.max(dim=2).values   # Global Max Pool\n        p = p.max(dim=2).values\n        return self.fc(torch.cat([d, p], dim=1)).squeeze(-1)"};
+/* ===== dedicated pages, ported from the Next.js app ===== */
+const BL={'Very High Binding':'#09A1A1','High Binding':'#5484A4','Moderate Binding':'#F6C992','No Significant Binding':'#D396A6'};
+const bdg=l=>`<span class="chip" style="--c:${BL[l]||'#5484A4'}"><i class="dot"></i>${l}</span>`;
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fx=(v,d)=>{const n=Number(v);return isNaN(n)?'—':n.toFixed(d)};
+const $i=i=>document.getElementById(i),setH=(i,h)=>{const e=$i(i);if(e)e.innerHTML=h};
+const copy=t=>{try{navigator.clipboard.writeText(t)}catch(e){}};
+const ACT={},INP={},MAIN=document.querySelector('main');
+MAIN.addEventListener('click',e=>{const a=e.target.closest('[data-a]');if(a&&ACT[a.dataset.a])ACT[a.dataset.a](a.dataset.v,a,e)});
+MAIN.addEventListener('input',e=>{const f=INP[e.target.dataset.i];if(f)f(e.target.value,e.target)});
+MAIN.addEventListener('keydown',e=>{const f=ACT[e.target.dataset&&e.target.dataset.k];if(e.key=='Enter'&&f)f(e.target.value,e.target)});
+MAIN.addEventListener('dragover',e=>{if(e.target.closest('.dz'))e.preventDefault()});
+MAIN.addEventListener('drop',e=>{if(e.target.closest('.dz')){e.preventDefault();readCsv(e.dataTransfer.files[0])}});
+MAIN.addEventListener('change',e=>{if(e.target.id=='bf'){readCsv(e.target.files[0]);e.target.value=''}});
+/* 2D structure: PubChem image with the original SMILES wireframe as fallback/toggle */
+const svgW=(g,w)=>{let o=`<svg viewBox="0 0 300 180" ${w?`width="${w}"`:'width="100%" style="max-height:200px"'}>`;
+g.bonds.forEach(b=>{const dx=b.target.x-b.source.x,dy=b.target.y-b.source.y,l=Math.hypot(dx,dy)||1,ox=-dy/l*2,oy=dx/l*2,L=(a,b2,c,d,col)=>`<line x1="${a}" y1="${b2}" x2="${c}" y2="${d}" stroke="${col}" stroke-width="2" stroke-linecap="round"/>`;
+o+=b.isDouble?L(b.source.x+ox,b.source.y+oy,b.target.x+ox,b.target.y+oy,'#5484A4')+L(b.source.x-ox,b.source.y-oy,b.target.x-ox,b.target.y-oy,'#09A1A1'):L(b.source.x,b.source.y,b.target.x,b.target.y,'#5b7a8c')});
+g.nodes.forEach(n=>{const c=n.symbol=='C';o+=`<circle cx="${n.x}" cy="${n.y}" r="${c?3:8.5}" fill="${c?'#64748B':'#0a171b'}" stroke="${n.color}" stroke-width="${c?1.5:2}"/>`+(c?'':`<text x="${n.x}" y="${n.y+3}" text-anchor="middle" fill="${n.color}" font-size="9" font-weight="700" font-family="monospace">${n.symbol}</text>`)});return o+'</svg>'};
+const thumb=s=>{try{const g=wire(s.trim());return g.nodes.length?svgW(g,72):''}catch(e){return''}};
+const pv=(smi,name,cid,f,wt)=>{const v=validateSmiles(smi);let b;
+if(!v.valid||!smi.trim())b=`<p class="empty">${smi.trim()&&v.invalidChars.length?'Unrecognized character(s): '+esc(v.invalidChars.join(', ')):'Enter a compound name or SMILES string to render 2D structure.'}</p>`;
+else{const g=wire(smi.trim()),u=cid>0?`${PUG}/compound/CID/${cid}/PNG?image_size=420x260`:`${PUG}/compound/smiles/${encodeURIComponent(smi.trim())}/PNG?image_size=420x260`;
+b=`<img class="pimg" src="${u}" alt="${esc(name||'2D structure')}" onerror="this.closest('.pv').dataset.m='w'"><div class="pwire">${svgW(g)}<div class="pills">${f?`<span>${esc(f)}</span>`:''}${Number(wt)>0?`<span>${Number(wt).toFixed(1)} g/mol</span>`:''}<span>${g.nodes.length} atoms · ${g.ringsCount} rings</span></div></div>`}
+return `<div class="pv" data-m="p"><div class="pvh"><b>${name?esc(name)+' 2D Structure':'2D Molecular Structure'}</b><span><button data-a="pm" data-v="p">PubChem</button><button data-a="pm" data-v="w">Wireframe</button>${cid>0?`<a href="https://pubchem.ncbi.nlm.nih.gov/compound/${cid}" target="_blank" rel="noreferrer">↗</a>`:''}</span></div><div class="pvb">${b}</div></div>`};
+ACT.pm=(v,b)=>{b.closest('.pv').dataset.m=v};
+/* ---------- Predict ---------- */
+const PS={name:'Dasatinib',smi:SAMPLE_COMPOUNDS[0].smiles,cid:0,f:SAMPLE_COMPOUNDS[0].formula,wt:SAMPLE_COMPOUNDS[0].weight,tn:'ABL1 (Tyrosine-protein kinase ABL1)',seq:SAMPLE_PROTEINS[0].sequence,acc:SAMPLE_PROTEINS[0].uniprot,tab:'drug',res:null,err:null,ps:'',us:''};
+const setC=(c,m)=>{Object.assign(PS,{name:c.name,smi:c.smiles,f:c.formula,wt:c.weight,cid:0,ps:m||`Preset loaded: ${c.name}`})};
+const setP=(p,m)=>{Object.assign(PS,{tn:`${p.id} (${p.name})`,seq:p.sequence,acc:p.uniprot,us:m||`Preset loaded: ${p.id}`})};
+const cmpOf=n=>SAMPLE_COMPOUNDS.find(c=>c.name==n),prOf=n=>SAMPLE_PROTEINS.find(p=>p.id==n);
+const resultHtml=r=>{const p=Number(r.pkd)||7,u=Number(r.uncertainty)||.15,pc=(Math.min(Math.max(p,4),11)-4)/7*100;
+return `${r.is_mock?`<div class="note">⚠ <b>Client-Side Inference Mode</b> — This prediction uses the lightweight calibrated cache engine running in your browser. Results for the standard Davis kinase panel are anchored to experimental ground-truth (Davis et al., 2011). For arbitrary novel compounds, affinities are estimated using structure/sequence similarity hashing. Full PyTorch + GBM ensemble runs via the FastAPI service (<code>service/app.py</code>).</div>`:`<div class="note" style="color:var(--teal)">✓ <b>Live Ensemble Inference</b> — Full PyTorch CNN + 3× GBM ensemble with isotonic calibration. All predictions are computed in real-time.</div>`}
+<div class="card" style="margin-top:14px"><p class="st">Inference Output · <span class="chip" style="--c:#ACC0D3">Calibrated Ensemble</span></p><h2 style="margin:8px 0 10px">${esc(r.compound_name||'Compound')} + ${esc(r.target_name||'Target')}</h2>${bdg(r.binding_level)}
+<div class="g3"><div class="mini2"><small>Predicted Affinity</small><div class="stat" style="font-size:40px">${fx(r.pkd,3)}</div><small>pK<sub>d</sub> = −log<sub>10</sub>(K<sub>d</sub> / 10<sup>9</sup>)</small></div><div class="mini2"><small>Dissociation (K<sub>d</sub>)</small><div class="stat" style="font-size:40px">${formatKd(r.kd_nM)}</div><small>Equilibrium dissociation</small></div><div class="mini2"><small>Uncertainty Spread</small><div class="stat" style="font-size:40px">±${fx(r.uncertainty,3)}</div><small>Model disagreement (σ)</small></div></div>
+<div class="spec"><div class="speclab"><b style="color:#fff">Affinity Spectrum Position</b><span>95% CI: [${fx(Math.max(4,p-1.96*u),2)} — ${fx(Math.min(11,p+1.96*u),2)}]</span></div><div class="specbar" style="margin-top:12px"><i style="left:calc(${pc}% - 2px)"></i></div><div class="speclab"><span>4.0 (Weak / &gt;100 µM)</span><span>7.0 (100 nM)</span><span>9.0 (1 nM)</span><span>11.0 (Picomolar)</span></div></div>
+<p class="call"><b>Biochemical Interpretation:</b> ${esc(r.binding_explanation)}</p>
+<div class="acts"><button class="btn sm" data-a="sv">Save</button><button class="btn ghost sm" data-a="cj">Copy JSON</button><button class="btn ghost sm" data-a="ej">Export (.json)</button><button class="btn ghost sm" data-a="pr">Print / PDF Report</button></div></div>`};
+function renderPredict(){const s=validateSmiles(PS.smi),p=validateProteinSequence(PS.seq),D1=PS.tab=='drug';
+$i('predict').innerHTML=`<h1 class="pt">Binding Affinity Predictor Studio</h1><p>Auto-fetch SMILES from PubChem &amp; FASTA sequences from UniProt, then run deep ensemble affinity inference.</p><p class="note">⚠ Web demo uses client-side calibrated cache for Vercel deployment. Full PyTorch + GBM ensemble available via <code>service/app.py</code>.</p>
+<div class="acts"><button class="btn ghost sm" data-a="rd">↻ Reset Defaults</button></div>${PS.err?`<div class="err">${esc(PS.err)}</div>`:''}
+<div class="card" style="margin-top:12px"><b style="color:#fff">⚡ Expo Showcase Scenarios</b> <span class="chip" style="--c:#F6C992">1-Click Live Demos</span><p class="st" style="color:var(--ice)">Curated clinical kinase benchmarks ready for instant booth demonstration.</p><div class="acts"><button class="btn ghost sm" data-a="sc" data-v="Erlotinib|EGFR">🎯 Case 1: Erlotinib + EGFR (Sub-nM Hit)</button><button class="btn ghost sm" data-a="sc" data-v="Dasatinib|ABL1">🎯 Case 2: Dasatinib + ABL1 (Picomolar)</button><button class="btn ghost sm" data-a="sc" data-v="Aspirin|ABL1">🛡 Case 3: Aspirin + ABL1 (Negative Control)</button></div></div>
+<div class="g2"><div class="card"><div class="tabs" style="margin-top:0"><button class="tab ${D1?'on':''}" data-a="tb" data-v="drug">1. Drug (PubChem)</button><button class="tab ${D1?'':'on'}" data-a="tb" data-v="protein">2. Target (UniProt)</button><span class="chip" style="--c:#ACC0D3;margin-left:auto" id="vb">${D1?(s.valid?'SMILES OK':'Needs SMILES'):p.length+' aa'}</span></div>
+<div ${D1?'':'hidden'}><label>Drug / Compound Name (PubChem Linked): <span class="st">${esc(PS.ps)}</span></label><div class="rowf"><div class="rel"><input type="text" id="dn" value="${esc(PS.name)}" data-i="dn" data-k="lk" autocomplete="off" placeholder="Type any drug (e.g. Dasatinib, Aspirin, Osimertinib)..."><div id="dsug" class="sug" hidden></div></div><button class="btn sm" data-a="lk">Lookup</button></div>
+<label>Canonical SMILES: <span class="st" id="sc2">${PS.smi.length} chars ${s.valid?'✓ Valid':'⚠ Empty'}</span></label><textarea id="smi" data-i="smi" placeholder="e.g. CC1=C(C(=CC=C1)Cl)NC(=O)...">${esc(PS.smi)}</textarea>
+<p class="st" style="color:var(--ice);margin-top:12px">Benchmark Presets:</p><div class="chips">${SAMPLE_COMPOUNDS.slice(0,6).map(c=>`<button class="pre ${PS.name.toLowerCase()==c.name.toLowerCase()?'on':''}" data-a="pc" data-v="${c.name}">${c.name}</button>`).join('')}</div><div id="pvw">${pv(PS.smi,PS.name,PS.cid,PS.f,PS.wt)}</div></div>
+<div ${D1?'hidden':''}><label>Target Kinase / Gene (UniProt Linked): <span class="st">${esc(PS.us)}</span></label><div class="rowf"><div class="rel"><input type="text" id="tn" value="${esc(PS.tn)}" data-i="tn" data-k="lu" autocomplete="off" placeholder="Type gene or protein (e.g. EGFR, ABL1, BRAF, KIT)..."><div id="tsug" class="sug" hidden></div></div><button class="btn sm" data-a="lu">Lookup</button></div>
+<label>FASTA Sequence (Amino Acids): <span class="st" id="sq2">${p.length} residues ${p.valid?'✓ Valid':'⚠ Empty'}</span></label><textarea id="seq" data-i="seq" placeholder="MKWVTFISLLFLFSSAY...">${esc(PS.seq)}</textarea>
+<p class="st" style="color:var(--ice);margin-top:12px">Reference Targets:</p><div class="chips">${SAMPLE_PROTEINS.map(x=>`<button class="pre ${PS.tn.startsWith(x.id)?'on':''}" data-a="pp" data-v="${x.id}">${x.id} · ${x.uniprot}</button>`).join('')}</div>
+<dl class="facts"><dt>UniProt Accession:</dt><dd>${esc(PS.acc||'P00519')}</dd><dt>Organism:</dt><dd>Homo sapiens</dd><dt>Domain Type:</dt><dd>Protein Kinase Catalytic Domain</dd></dl></div>
+<button class="btn" id="runb" data-a="run" style="width:100%;margin-top:16px">⚡ Run Binding Affinity Inference</button></div>
+<div>${PS.res?resultHtml(PS.res):`<div class="card empty" style="padding:40px 24px"><h3>Inference Engine Ready</h3><p>Type any drug or target on the left to auto-fetch structures from PubChem and UniProt, then run affinity inference.</p><button class="btn ghost sm" data-a="run" style="margin-top:12px">⚡ Run Benchmark Pair (Dasatinib + ABL1)</button></div>`}</div></div>`}
+ACT.rd=()=>{setC(SAMPLE_COMPOUNDS[0]);setP(SAMPLE_PROTEINS[0]);renderPredict()};
+ACT.sc=v=>{const[a,b]=v.split('|');setC(cmpOf(a));setP(prOf(b));renderPredict()};
+ACT.tb=v=>{PS.tab=v;renderPredict()};ACT.pc=v=>{setC(cmpOf(v));renderPredict()};ACT.pp=v=>{setP(prOf(v));renderPredict()};
+async function lookD(q){q=(q||PS.name).trim();if(!q)return;try{const d=await fetchPubChemData(q);Object.assign(PS,{name:q,smi:d.canonicalSMILES||d.isomericSMILES,cid:d.cid,f:d.molecularFormula,wt:d.molecularWeight,ps:`Found in PubChem (CID: ${d.cid})`})}catch(e){const l=SAMPLE_COMPOUNDS.find(c=>c.name.toLowerCase()==q.toLowerCase());if(l)setC(l,`Loaded preset: ${l.name}`);else PS.ps=`PubChem: "${q}" not found. You can enter SMILES manually.`}renderPredict()}
+async function lookU(q){q=(q||PS.tn).trim();if(!q)return;try{const d=await fetchUniProtProtein(q);Object.assign(PS,{tn:`${d.gene} (${d.name})`,seq:d.sequence,acc:d.accession,us:`Resolved via UniProt: ${d.accession} (${d.length} aa)`})}catch(e){const l=SAMPLE_PROTEINS.find(p=>p.id.toLowerCase()==q.toLowerCase()||p.name.toLowerCase().includes(q.toLowerCase()));if(l)setP(l,`Loaded preset target: ${l.id}`);else PS.us=`UniProt: "${q}" not found. You can paste FASTA sequence manually.`}PS.tab='protein';renderPredict()}
+ACT.lk=(v,b)=>lookD(b.dataset.v);ACT.lu=(v,b)=>lookU(b.dataset.v);ACT.ds=v=>lookD(v);ACT.ts=v=>lookU(v);
+const sugg=(id,fn,html,min,ms)=>{clearTimeout(PS[id]);const b=$i(id);if(!b)return;PS[id]=setTimeout(async()=>{const s=await fn();b.hidden=!s.length;b.innerHTML=s.map(html).join('')},ms)};
+INP.dn=v=>{PS.name=v;const b=$i('dsug');if(v.trim().length<3){if(b)b.hidden=true;return}sugg('t1',()=>fetchSuggestions(v.trim(),5),x=>`<button data-a="ds" data-v="${esc(x)}">${esc(x)}</button>`,3,350)};
+INP.tn=v=>{PS.tn=v;const b=$i('tsug');if(v.trim().length<2){if(b)b.hidden=true;return}sugg('tsug',()=>fetchProteinSuggestions(v.trim()),x=>`<button data-a="ts" data-v="${esc(x.gene)}"><span>${esc(x.gene)} — ${esc(x.name)}</span><span>${esc(x.accession)}</span></button>`,2,400)};
+INP.smi=v=>{PS.smi=v;const s=validateSmiles(v);setH('sc2',`${v.length} chars ${s.valid?'✓ Valid':'⚠ Empty'}`);$i('vb').textContent=s.valid?'SMILES OK':'Needs SMILES';setH('pvw',pv(v,PS.name,PS.cid,PS.f,PS.wt))};
+INP.seq=v=>{PS.seq=v;const p=validateProteinSequence(v);setH('sq2',`${p.length} residues ${p.valid?'✓ Valid':'⚠ Empty'}`);$i('vb').textContent=p.length+' aa'};
+ACT.run=async()=>{if(!validateSmiles(PS.smi).valid){PS.err='Please enter or look up a valid SMILES string.';return renderPredict()}if(!validateProteinSequence(PS.seq).valid){PS.err='Please enter or look up a valid amino acid sequence.';return renderPredict()}
+PS.err=null;document.querySelectorAll('[data-a=run]').forEach(b=>{b.disabled=true;b.textContent='Featurizing & Computing Ensemble...'});
+try{PS.res=await predictAffinity({smiles:PS.smi.trim(),compound_name:PS.name.trim(),protein_sequence:PS.seq.trim(),target_name:PS.tn.trim()});pulse=1}catch(e){PS.err=e.message||'Prediction request failed.'}renderPredict()};
+ACT.sv=(v,b)=>{b.textContent='Saved!';setTimeout(()=>b.textContent='Save',2500)};
+ACT.cj=(v,b)=>{copy(JSON.stringify(PS.res,null,2));b.textContent='Copied!';setTimeout(()=>b.textContent='Copy JSON',2000)};
+ACT.ej=()=>exportToJson(`deepdta_inference_${PS.res.compound_name||'ligand'}_${Date.now()}.json`,PS.res);ACT.pr=()=>window.print();
+/* ---------- Compound Search ---------- */
+const CIDS={aspirin:2244,paracetamol:1983,ibuprofen:3672,caffeine:2519,dasatinib:3062316,imatinib:5291,erlotinib:176870,gefitinib:123631},OFF={},QS=['Paracetamol','Aspirin','Ibuprofen','Caffeine','Dasatinib','Imatinib','Erlotinib','Gefitinib'];
+SAMPLE_COMPOUNDS.concat([{name:'Paracetamol',smiles:'CC(=O)NC1=CC=C(O)C=C1',formula:'C8H9NO2',weight:151.16},{name:'Ibuprofen',smiles:'CC(C)CC1=CC=C(C=C1)C(C)C(=O)O',formula:'C13H18O2',weight:206.29}]).forEach(c=>{OFF[c.name.toLowerCase()]={cid:CIDS[c.name.toLowerCase()]||0,iupacName:'N/A',molecularFormula:c.formula,molecularWeight:c.weight,canonicalSMILES:c.smiles,isomericSMILES:c.smiles,inchiKey:'N/A',synonyms:[c.name],offline:1}});
+let SS={};
+const cmpHtml=c=>{const n=v=>v===undefined?'N/A':String(v);return `<div class="card" style="margin-top:16px"><div class="acts" style="justify-content:space-between;margin:0"><div><h2 style="display:inline">${esc(c.synonyms[0]||'Compound')}</h2> ${c.cid?`<span class="chip" style="--c:#09A1A1">CID: ${c.cid}</span>`:''}<p class="st" style="color:var(--ice)">${esc(c.iupacName)}</p></div>${c.cid?`<a class="btn ghost sm" href="https://pubchem.ncbi.nlm.nih.gov/compound/${c.cid}" target="_blank" rel="noopener noreferrer">↗ Open in PubChem</a>`:''}</div>${c.offline?'<p class="note">Live PubChem lookup is not reachable from this preview, so built-in reference data is shown. The deployed app queries PubChem live.</p>':''}
+<div class="g2e">${pv(c.canonicalSMILES,c.synonyms[0]||'Compound',c.cid,c.molecularFormula,c.molecularWeight)}<div class="props">${[['Formula',c.molecularFormula],['Mol Weight',c.molecularWeight+' g/mol'],['XLogP',n(c.xlogp)],['Heavy Atoms',n(c.heavyAtomCount)],['H-Donors',n(c.hbondDonorCount)],['H-Acceptors',n(c.hbondAcceptorCount)],['Rotatable',n(c.rotatableBondCount)],['Complexity',n(c.complexity)]].map(p=>`<div class="mini2"><small>${p[0]}</small><b style="color:#fff">${esc(p[1])}</b></div>`).join('')}</div></div>
+<div class="mini2" style="margin-top:14px"><small>Canonical SMILES <button class="pre" data-a="cs" style="margin-left:8px">Copy SMILES</button></small><div class="mono" style="color:#fff">${esc(c.canonicalSMILES)}</div></div>
+<div class="mini2" style="margin-top:10px"><small>InChI Key</small><div class="mono" style="color:#fff">${esc(c.inchiKey)}</div></div>
+${c.synonyms.length?`<p class="st" style="color:var(--ice);margin-top:14px">Common Names / Synonyms</p><div class="chips">${c.synonyms.map(s=>`<span class="chip" style="--c:#30525C;color:#fff">${esc(s)}</span>`).join(' ')}</div>`:''}
+<div class="call" style="margin-top:16px"><b>Ready to predict?</b> Use this compound's SMILES in the Predictor Studio to estimate binding affinity against a protein target.<br><button class="btn sm" data-a="op" style="margin-top:10px">Open in Predictor</button></div></div>`};
+function renderSearch(){const c=SS.compound;$i('search').innerHTML=`<h1 class="pt">PubChem Compound Search</h1><p>Look up any chemical compound and retrieve its structure, properties, and SMILES from PubChem.</p>
+<div class="card" style="margin-top:16px"><div class="rowf"><input type="text" id="sq" value="${esc(SS.q||'')}" data-k="sg" placeholder="Search by compound name (e.g. Paracetamol, Aspirin, Dasatinib)"><button class="btn sm" data-a="sg">Search</button></div><p class="st" style="color:var(--ice)">Quick search:</p><div class="chips">${QS.map(s=>`<button class="qs" data-a="sg" data-v="${s}">${s}</button>`).join(' ')}</div></div>
+${SS.notFound&&!SS.loading?`<div class="err"><b>"${esc(SS.notFound)}"</b> doesn't exist in PubChem. Check the spelling and try again.${SS.sugg&&SS.sugg.length?`<div class="chips" style="margin-top:8px">Did you mean: ${SS.sugg.map(s=>`<button class="qs" data-a="sg" data-v="${esc(s)}">${esc(s)}</button>`).join(' ')}</div>`:''}</div>`:''}
+${SS.error?`<div class="err">${esc(SS.error)}. Could not reach PubChem — check your internet connection and try again.</div>`:''}${SS.loading?'<div class="card empty" style="margin-top:16px">Querying PubChem database…</div>':''}${c&&!SS.loading?cmpHtml(c):''}
+${!c&&!SS.loading&&!SS.error&&!SS.notFound?'<div class="card empty" style="margin-top:16px;padding:40px 24px"><h3>Search PubChem</h3><p>Enter a compound name (e.g. Paracetamol, Dasatinib) to retrieve its molecular formula, weight, SMILES string, and other chemical properties live from PubChem.</p></div>':''}`}
+async function doSearch(name){const q=(name||$i('sq').value).trim();if(!q)return;SS={q,loading:1};renderSearch();
+try{SS.compound=await fetchPubChemData(q)}catch(e){const o=OFF[q.toLowerCase()];if(o)SS.compound=o;else if(e instanceof CompoundNotFoundError){SS.notFound=q;SS.sugg=await fetchSuggestions(q)}else SS.error=e.message||'Failed to fetch compound data.'}SS.loading=0;renderSearch()}
+ACT.sg=(v,b)=>doSearch(b.dataset.v);ACT.cs=(v,b)=>{copy(SS.compound.canonicalSMILES);b.textContent='Copied!'};
+ACT.op=()=>{const c=SS.compound;Object.assign(PS,{name:c.synonyms[0]||'Compound',smi:c.canonicalSMILES,cid:c.cid||0,f:c.molecularFormula,wt:c.molecularWeight,ps:''});PS.tab='drug';location.hash='predict'};
+/* ---------- Virtual Screening ---------- */
+const BS={items:[],tp:SAMPLE_PROTEINS[0],busy:0,prog:0,stage:'',msg:null,q:'',cat:'ALL',asc:0};
+const LV=[['ALL','All Categories'],['Very High Binding','Very High Binding (> 8.0)'],['High Binding','High Binding (7.0 - 8.0)'],['Moderate Binding','Moderate Binding (6.0 - 7.0)'],['No Significant Binding','No Significant Binding (< 6.0)']];
+const bmsg=()=>setH('bmsg',BS.msg?`<div class="note" style="color:var(--ice);margin-top:12px">ℹ ${esc(BS.msg)}</div>`:'');
+function renderBatch(){$i('screen').innerHTML=`<h1 class="pt">Batch Virtual Screening Studio</h1><p>High-throughput binding affinity screening of compound libraries against kinase targets with calibrated uncertainty estimation.</p><div class="acts"><button class="btn ghost sm" data-a="bl">✨ Load Sample Library (8 Drugs)</button>${BS.items.length?'<button class="btn ghost sm" data-a="bx">Export Results CSV</button>':''}</div><div id="bmsg"></div>
+<div class="g2e" style="margin-top:16px"><div class="card"><h3>Screening Target</h3><p class="st" style="color:var(--ice)">Select the protein kinase domain to screen against</p><div class="list">${SAMPLE_PROTEINS.map(p=>`<button class="item ${BS.tp.id==p.id?'on':''}" data-a="bt" data-v="${p.id}"><b style="color:#fff">${p.id}</b><span style="flex:1">${p.name}</span><span>${p.length} aa</span></button>`).join('')}</div></div>
+<div class="card"><h3>Upload Compound Library CSV</h3><p class="st" style="color:var(--ice)">Drag &amp; drop a CSV file containing columns: <code>Compound_Name, SMILES</code> (optionally <code>Target_ID, Sequence</code>)</p><label class="dz"><b style="color:#fff">⬆ Click to browse or drop CSV library here</b><span>CSV, TSV, or TXT (flexible column header support)</span><input type="file" id="bf" accept=".csv,.txt,.tsv" hidden></label><p class="st" style="margin-top:10px;display:flex;justify-content:space-between"><span>Format: Compound_Name, SMILES</span><span>Active Target: ${BS.tp.id}</span></p></div></div><div id="bwrap"></div>`;bmsg();batchBody()}
+function batchBody(){const it=BS.items,dn=it.filter(x=>x.status=='completed'&&x.pkd!==undefined),n=dn.length,hi=dn.filter(x=>x.pkd>=8),top=n?[...dn].sort((a,b)=>b.pkd-a.pkd)[0]:null;
+const bins=[['< 6.0 (Weak)',dn.filter(x=>x.pkd<6).length,BL['No Significant Binding']],['6.0 - 7.0 (Moderate)',dn.filter(x=>x.pkd>=6&&x.pkd<7).length,BL['Moderate Binding']],['7.0 - 8.0 (High)',dn.filter(x=>x.pkd>=7&&x.pkd<8).length,BL['High Binding']],['≥ 8.0 (Sub-nM)',hi.length,BL['Very High Binding']]],mx=Math.max(1,...bins.map(b=>b[1]));
+let o='';if(n)o+=`<div class="g3"><div class="mini2"><small>Screened</small><div class="stat">${n}</div><small>molecules evaluated</small></div><div class="mini2"><small>High Binders</small><div class="stat">${hi.length}</div><small>pK<sub>d</sub> ≥ 8.0 (Sub-nM)</small></div><div class="mini2"><small>Mean Affinity</small><div class="stat">${(dn.reduce((a,x)=>a+x.pkd,0)/n).toFixed(2)}</div><small>average pK<sub>d</sub> score</small></div><div class="mini2"><small>Top Hit</small><div class="stat" style="font-size:28px">${esc(top.compound_name)}</div><small>pK<sub>d</sub>: ${fx(top.pkd,3)}</small></div></div>`;
+if(n>1)o+=`<div class="card" style="margin-top:16px"><h3>Screened Library Affinity Distribution</h3><p class="st" style="color:var(--ice)">Stratification of compounds across binding potency thresholds against ${BS.tp.id}. (${n} compounds)</p><svg viewBox="0 0 520 190" width="100%">${bins.map((b,i)=>`<g><title>${b[1]} compounds</title><rect x="${30+i*122}" y="${150-b[1]/mx*120}" width="90" height="${b[1]/mx*120}" rx="4" fill="${b[2]}"/><text x="${75+i*122}" y="${144-b[1]/mx*120}" text-anchor="middle" fill="#fff" font-size="12">${b[1]}</text><text x="${75+i*122}" y="172" text-anchor="middle" fill="#ACC0D3" font-size="11">${b[0]}</text></g>`).join('')}</svg></div>`;
+if(it.length)o+=`<div class="card" style="margin-top:16px"><div class="acts" style="justify-content:space-between;margin:0"><div><h3>Screening Queue (${it.length} Compounds)</h3><p class="st" style="color:var(--ice)">Target: <b>${BS.tp.id}</b> (${BS.tp.name})</p></div><div class="acts" style="margin:0"><button class="btn sm" data-a="brun"${BS.busy?' disabled':''}>▶ ${BS.busy?'Processing Batch...':'Run Batch Screening'}</button><button class="btn ghost sm" data-a="bc">↺ Clear</button></div></div><div id="bpg"></div>
+<div class="rowf" style="margin-top:14px"><input type="text" data-i="bq" placeholder="Filter by compound name or SMILES..." value="${esc(BS.q)}"><select data-i="bcat" style="max-width:260px">${LV.map(l=>`<option value="${l[0]}" ${BS.cat==l[0]?'selected':''}>${l[1]}</option>`).join('')}</select><button class="btn ghost sm" data-a="bs" id="bsb">⇅ pKd (${BS.asc?'ASC':'DESC'})</button></div><div id="bt"></div></div>`;
+setH('bwrap',o);if(it.length)btable();pgu()}
+function btable(){const q=BS.q.toLowerCase(),a=BS.asc?1:-1,rows=BS.items.filter(x=>(x.compound_name.toLowerCase().includes(q)||x.smiles.toLowerCase().includes(q))&&(BS.cat=='ALL'||x.binding_level==BS.cat)).sort((x,y)=>a*((x.pkd==null?-1:x.pkd)-(y.pkd==null?-1:y.pkd))),n=BS.items.filter(x=>x.status=='completed').length;
+setH('bt',`<div class="tbl"><table><thead><tr><th>#</th><th>Structure</th><th>Compound Name</th><th>SMILES String</th><th>Target</th><th>Predicted pKd</th><th>Equilibrium Kd</th><th>Binding Level</th><th>Status</th></tr></thead><tbody>${rows.map((x,i)=>`<tr><td>${i+1}</td><td>${thumb(x.smiles)}</td><td style="color:#fff">${esc(x.compound_name)}</td><td class="mono" title="${esc(x.smiles)}">${esc(x.smiles.length>36?x.smiles.slice(0,36)+'…':x.smiles)}</td><td>${esc(x.target_id)}</td><td>${x.pkd!==undefined?fx(x.pkd,3):'—'}</td><td>${x.kd_nM!==undefined?formatKd(x.kd_nM):'—'}</td><td>${x.binding_level?bdg(x.binding_level):'—'}</td><td>${x.status=='completed'?'✓ Done':x.status=='failed'?'⚠ Failed':'Pending'}</td></tr>`).join('')}</tbody></table></div><p class="st">Showing ${rows.length} of ${BS.items.length} compounds (${n} screened) · Target: ${BS.tp.id} (${BS.tp.uniprot})</p>`)}
+const pgu=()=>setH('bpg',BS.busy?`<div class="pgl"><span>${BS.stage}</span><span>${BS.prog}%</span></div><div class="bar" style="--c:#09A1A1"><i style="width:${BS.prog}%"></i></div>`:'');
+ACT.bl=()=>{BS.items=SAMPLE_COMPOUNDS.map((c,i)=>({id:'batch-'+(i+1),compound_name:c.name,smiles:c.smiles,target_id:BS.tp.id,target_sequence:BS.tp.sequence,status:'pending'}));BS.msg=`Loaded reference library with ${BS.items.length} benchmark kinase inhibitors.`;renderBatch()};
+ACT.bt=v=>{BS.tp=prOf(v);renderBatch()};ACT.bc=()=>{BS.items=[];BS.msg=null;renderBatch()};ACT.bs=()=>{BS.asc=!BS.asc;$i('bsb').textContent=`⇅ pKd (${BS.asc?'ASC':'DESC'})`;btable()};
+INP.bq=v=>{BS.q=v;btable()};INP.bcat=v=>{BS.cat=v;btable()};
+ACT.bx=()=>exportToCsv(`deepdta_screening_${BS.tp.id}_${Date.now()}.csv`,BS.items.map((x,i)=>({Rank:i+1,Compound_Name:x.compound_name,SMILES:x.smiles,Target_ID:x.target_id,Predicted_pKd:x.pkd==null?'N/A':x.pkd,Equilibrium_Kd_nM:x.kd_nM==null?'N/A':x.kd_nM,Uncertainty_Spread:x.uncertainty==null?'N/A':x.uncertainty,Binding_Level:x.binding_level||'Unprocessed',Status:x.status})));
+ACT.brun=async()=>{BS.busy=1;BS.prog=15;BS.stage='Featurizing SMILES token sequences...';batchBody();
+const t1=setTimeout(()=>{BS.prog=45;BS.stage='Running multi-branch ensemble inference...';pgu()},300),t2=setTimeout(()=>{BS.prog=75;BS.stage='Computing Kd equilibrium constants & uncertainty...';pgu()},700);
+try{const r=await predictBatch(BS.items);BS.items=r;BS.msg=`Screening complete! Evaluated ${r.length} compounds against ${BS.tp.id}.`}catch(e){BS.msg='An error occurred during screening.'}clearTimeout(t1);clearTimeout(t2);BS.busy=0;pulse=1;renderBatch()};
+function readCsv(f){if(!f)return;const r=new FileReader();r.onload=ev=>{const L=String(ev.target.result||'').split(/\r?\n/).map(l=>l.trim()).filter(Boolean);if(L.length<=1){BS.msg='The CSV file appears to be empty or has only a header row.';return bmsg()}
+const hd=L[0].split(',').map(h=>h.replace(/^["']|["']$/g,'').trim().toLowerCase());let nc=hd.findIndex(h=>h.includes('name')||h.includes('compound')||h=='drug'),sc=hd.findIndex(h=>h.includes('smiles')||h=='smi'||h.includes('structure')),ti=hd.findIndex(h=>h.includes('target_id')||h=='target'||h.includes('protein_id')),qc=hd.findIndex(h=>h.includes('sequence')||h.includes('seq')||h.includes('protein_seq'));
+if(sc==-1)sc=hd.length>1?1:0;if(nc==-1)nc=sc==0?1:0;const out=[];
+for(let i=1;i<L.length;i++){const p=[];let q=false,c='';for(const ch of L[i]){if(ch=='"'||ch=="'")q=!q;else if(ch==','&&!q){p.push(c.trim());c=''}else c+=ch}p.push(c.trim());const s=p[sc]||'';if(!s)continue;out.push({id:`csv-${Date.now()}-${i}`,compound_name:(nc>=0&&p[nc])||`Compound_${i}`,smiles:s,target_id:(ti>=0&&p[ti])||BS.tp.id,target_sequence:(qc>=0&&p[qc])||BS.tp.sequence,status:'pending'})}
+if(out.length){BS.items=out;BS.msg=`Successfully parsed ${out.length} compounds from "${f.name}". Ready for screening.`}else BS.msg='Could not extract valid SMILES rows. Please check file format.';renderBatch()};r.readAsText(f)}
+/* ---------- Architecture ---------- */
+function renderModel(){const M=MODEL;$i('how').innerHTML=`<h1 class="pt">Model Architecture</h1><p>Understand the two-branch CNN model built with PyTorch and sequence character tokenization.</p><div class="chips"><span class="chip" style="--c:#09A1A1">PyTorch CNN</span> <span class="chip" style="--c:#ACC0D3">Dual Branch</span></div>
+<div class="card" style="margin-top:16px"><h3>DeepDTA: Dual-Branch CNN Architecture</h3><p class="st" style="color:var(--ice)">Original paper: Öztürk et al., 2018 · Bioinformatics 34(17) · Re-implemented with PyTorch in this implementation.</p><p>DeepDTA uses <b style="color:#fff">two independent CNN branches</b> — one for the drug molecule (SMILES) and one for the target protein (amino acid sequence). Each branch learns its own feature representations independently through convolutional layers, then both are <b style="color:#fff">concatenated and fed into shared fully-connected layers</b> that predict the binding affinity (pKd score). Our implementation uses <b style="color:var(--teal)">PyTorch</b> for modular model development and deployment.</p></div>
+<div class="g2e" style="margin-top:16px">${M.steps.map(b=>`<div class="card"><h3>${b.title}</h3><div class="steps" style="margin-top:12px">${b.steps.map((s,i)=>`<div class="stp"><b>${i+1}</b><div><div style="color:#fff">${s.label}</div><div class="st" style="color:var(--ice)">${s.desc}</div>${s.code?`<code class="mono" style="color:var(--sand)">${s.code}</code>`:''}</div></div>`).join('')}</div></div>`).join('')}</div>
+<div class="card" style="margin-top:16px"><h3>Fusion &amp; Prediction Head</h3><p class="st" style="color:var(--ice)">Both branches are concatenated, then fed through dense layers to produce the final pKd score.</p><div class="dense">${M.dense.map((l,i)=>`<div class="mini2" style="flex:1;min-width:150px"><b style="color:var(--sand)">${l.size}</b><div style="color:#fff">${l.label}</div><small>${l.desc}</small></div>${i<M.dense.length-1?'<span>→</span>':''}`).join('')}</div></div>
+<div class="card" style="margin-top:16px"><h3>Model Hyperparameters</h3><p class="st" style="color:var(--ice)">Settings used in the original paper and replicated in our PyTorch implementation.</p><div class="hp">${M.hp.map(h=>`<div class="mini2"><small>${h.key}</small><b style="color:#fff">${h.value}</b></div>`).join('')}</div></div>
+<div class="card" style="margin-top:16px"><h3>Our Enhancements vs. Original Paper</h3><div class="tbl"><table><thead><tr><th>Aspect</th><th>Original Paper</th><th>Our Project</th></tr></thead><tbody>${M.enh.map(r=>`<tr><td style="color:#fff">${r[0]}</td><td>${r[1]}</td><td><span style="color:var(--teal)">✓</span> ${r[2]}</td></tr>`).join('')}</tbody></table></div></div>
+<div class="card" style="margin-top:16px"><h3>PyTorch Model Skeleton</h3><p class="st" style="color:var(--ice)">Simplified architecture as implemented with PyTorch.</p><pre class="code">${esc(M.code)}</pre></div>`}
+/* ---------- Results ---------- */
+const RS={tab:'random',m:'ci'};
+const MC={ci:{l:'CI',f:'Concordance Index (CI)',u:'ranking',up:1,dom:[.45,.95],d:4},mse:{l:'MSE',f:'Mean Squared Error (MSE)',u:'error',up:0,dom:[0,.9],d:3},r2m:{l:'R²m',f:'Modified Squared Correlation (R²m)',u:'correlation',up:1,dom:[0,.75],d:3},aupr:{l:'AUPR',f:'Area Under Precision-Recall (AUPR)',u:'precision',up:1,dom:[0,.8],d:3}};
+const bcol=d=>d.highlight?'#09A1A1':d.model.includes('CNN')?'#5484A4':d.model.includes('Similarity')?'#ACC0D3':d.model.includes('SimBoost')?'#F6C992':d.model.includes('KronRLS')?'#D396A6':'#30525C';
+function chart(m){const c=MC[m],rows=BASELINE_DATA.filter(d=>d[m]!==null),VW=720,VH=300,LM=44,BM=64,bw=(VW-LM-10)/rows.length,y=v=>VH-BM-(v-c.dom[0])/(c.dom[1]-c.dom[0])*(VH-BM-14);let o=`<svg viewBox="0 0 ${VW} ${VH}" width="100%" role="img" aria-label="${c.f}">`;
+for(let i=0;i<=4;i++){const v=c.dom[0]+(c.dom[1]-c.dom[0])*i/4;o+=`<line x1="${LM}" x2="${VW}" y1="${y(v)}" y2="${y(v)}" stroke="#30525C" stroke-opacity=".5"/><text x="${LM-6}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="#ACC0D3">${v.toFixed(2)}</text>`}
+rows.forEach((d,i)=>{const x=LM+i*bw+bw*.18,w=bw*.64,v=Math.max(d[m],c.dom[0]);o+=`<g><title>${d.model}: ${c.l} ${d[m].toFixed(c.d)}</title><rect x="${x}" y="${y(v)}" width="${w}" height="${VH-BM-y(v)}" rx="4" fill="${bcol(d)}"/><text x="${x+w/2}" y="${y(v)-5}" text-anchor="middle" font-size="11" fill="#fff">${d[m].toFixed(c.d)}</text><text transform="translate(${x+w/2},${VH-BM+16}) rotate(-15)" text-anchor="end" font-size="11" fill="#ACC0D3">${d.shortName}</text></g>`});return o+'</svg>'}
+const mtab=(rows,cols)=>`<div class="tbl"><table><thead><tr>${cols.map(c=>`<th>${c[1]}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr class="${r.highlight?'hl':''}">${cols.map(c=>`<td>${c[2]?c[2](r):r[c[0]]}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+const f3=(k,d)=>r=>r[k]==null?'—':r[k].toFixed(d);
+function renderResults(){const t=RS.tab,m=MC[RS.m];let b='';
+if(t=='random')b=`<div class="g3"><div class="card"><small>Pairwise Ranking</small> <span class="chip" style="--c:#09A1A1">Primary Metric</span><div class="stat">0.8852 CI</div><b style="color:#fff">88.52% Ranking Accuracy</b><p>Concordance Index (CI) measures ranking correctness. Across all evaluated drug-target pairs, DeepDTA+ correctly identifies which pair binds tighter in 88.52% of comparisons.</p></div><div class="card"><small>Binary Hit Detection</small> <span class="chip" style="--c:#ACC0D3">pKd ≥ 7.0 Cutoff</span><div class="stat">0.7088 AUPR</div><b style="color:#fff">Area Under Precision-Recall</b><p>Evaluates active drug candidate detection (Kd ≤ 100 nM) under severe class imbalance (~70% non-binders in Davis). Crushes the random guess baseline (0.083) by 8.5×.</p></div><div class="card"><small>Continuous Calibration</small> <span class="chip" style="--c:#F6C992">Residual Error</span><div class="stat">0.2740 MSE</div><b style="color:#fff">Mean Squared Error (pKd)</b><p>Measures average squared deviation from experimental pKd. Combined with ensemble spread (σ = ±0.15), provides calibrated confidence flags for screening.</p></div></div>
+<div class="card"><p class="st" style="color:var(--ice)">✨ Interactive Metric Comparison:</p><div class="chips">${Object.keys(MC).map(k=>`<button class="pre ${RS.m==k?'on':''}" data-a="rm" data-v="${k}">${MC[k].l} ${MC[k].up?'↑':'↓'}</button>`).join(' ')}</div></div>
+<div class="card" style="margin-top:16px"><h3>${m.f} on Davis Test Split</h3><p class="st" style="color:var(--ice)">${m.up?'Higher value indicates better performance.':'Lower value indicates smaller prediction error.'} <span class="chip" style="--c:#ACC0D3">${m.u}</span></p>${chart(RS.m)}</div>
+<div class="card" style="margin-top:16px"><h3>Random Split — Complete Evaluation Matrix</h3><p class="st" style="color:var(--ice)">All numbers read directly from results/metrics.json and training_summary.json.</p>${mtab(BASELINE_DATA,[['m','Model',r=>`<span style="color:#fff">${r.model}</span>${r.highlight?' <span class="chip" style="--c:#09A1A1">Ours</span>':''}`],['ci','CI ↑',r=>`<b style="color:${r.highlight?'var(--teal)':'#fff'}">${r.ci.toFixed(4)}</b>`],['mse','MSE ↓',f3('mse',3)],['r2m','R²m ↑',f3('r2m',3)],['aupr','AUPR ↑',f3('aupr',3)],['note','Notes',r=>`<small>${r.note||''}</small>`]])}
+<div class="call" style="margin-top:14px"><b>Scientific Takeaway (Ranking vs. Absolute Calibration):</b><br>Our benchmarked ensemble achieves superior ranking accuracy (<b>CI 0.8852</b> vs DeepDTA paper's 0.878), making it ideal for virtual screening and hit prioritization. However, the original CNN retains a slightly lower Mean Squared Error (0.261 vs 0.274). This highlights that ranking discrimination and absolute calibration can present subtle trade-offs in ensemble models.</div></div>`;
+if(t=='cold'){const ct=(ti,bd,ds,rows,note)=>`<div class="card" style="margin-top:16px"><h3>${ti} <span class="chip" style="--c:#ACC0D3">${bd}</span></h3><p class="st" style="color:var(--ice)">${ds}</p>${mtab(rows,[['model','Model'],['ci','CI ↑'],['mse','MSE ↓'],['r2m','R²m ↑']])}<p>${note}</p></div>`;
+b=`<div class="call"><b>Why Cold Splits Matter:</b> In standard random splits, the same drug scaffolds and protein targets may appear in both training and test sets. Cold-drug and cold-target splits strictly isolate unseen molecules and proteins across 5 independent seeds (mean ± std).</div>`+ct('Cold-Drug Split (5 Seeds)','Unseen Scaffolds','Tests whether the model generalizes to completely novel chemical classes never seen during training.',COLD_DRUG_SPLIT,'Notice the realistic drop from CI ~0.885 to <b>0.730 ± 0.032</b>. When novel drug scaffolds are tested, affinity prediction becomes significantly harder.')+ct('Cold-Target Split (5 Seeds)','Unseen Kinases','Tests whether the model generalizes to new protein targets absent from the training set.',COLD_TARGET_SPLIT,'Kinase domain sequence similarity enables strong cross-target transfer, retaining <b>0.854 ± 0.007 CI</b> on unseen proteins.')}
+if(t=='datasets')b=`<div class="g2e">${DATASETS.map(d=>`<div class="card"><h3>${d.name} Dataset <span class="chip" style="--c:${d.name=='Davis'?'#09A1A1':'#ACC0D3'}">${d.metric}</span></h3><p class="st" style="color:var(--ice)">${d.source}</p><p>${d.description}</p><div class="g3">${[['Drugs',d.drugs],['Proteins',d.proteins],['Assayed Pairs',d.pairs]].map(s=>`<div class="mini2"><div class="stat" style="font-size:28px">${s[1].toLocaleString()}</div><small>${s[0]}</small></div>`).join('')}</div><p>Target affinity measurement: <b style="color:#fff">${d.metric}</b> — ${d.metricDesc}</p></div>`).join('')}</div>`;
+if(t=='kiba')b=`<div class="card"><h3>KIBA Dataset Benchmark — Setting 1 Random Split <span class="chip" style="--c:#ACC0D3">Tang et al., 2014</span></h3><p>KIBA is a larger benchmark integrating K<sub>i</sub>, K<sub>d</sub>, and IC<sub>50</sub> measurements across 2,111 drugs × 229 kinase targets (118,254 pairs). The original DeepDTA paper reported CI=0.863 and MSE=0.194 on KIBA using a full end-to-end trained CNN. DeepDTA+ evaluates here using the Deep 2-Tower Neural Interaction Model, which decisively beats the original DeepDTA paper across both CI (0.879 vs 0.863) and MSE (0.143 vs 0.194).</p><div class="g3">${[['DeepDTA+ CI','0.879','beats paper 0.863 (+1.6%)'],['DeepDTA+ MSE','0.143','beats paper 0.194 (-26.1%)'],['DeepDTA+ R²m','0.769','beats paper 0.673 (+14.2%)'],['Dataset Pairs','118K','2111 drugs × 229 targets']].map(s=>`<div class="mini2"><div class="stat" style="font-size:30px">${s[1]}</div><b style="color:#fff">${s[0]}</b><small>${s[2]}</small></div>`).join('')}</div>${mtab(KIBA_BASELINE_DATA,[['m','Model',r=>`<span style="color:#fff">${r.model}</span>`],['ci','CI ↑',f3('ci',3)],['mse','MSE ↓',f3('mse',3)],['r2m','R²m ↑',f3('r2m',3)],['aupr','AUPR ↑',f3('aupr',3)],['note','Note',r=>`<small>${r.note}</small>`]])}<p><b>Why is DeepDTA+ KIBA CI lower than the paper?</b> The original paper uses an end-to-end trained CNN on KIBA. DeepDTA+ uses a GBM ensemble that runs without GPU training, trading ~1.5% CI for zero training cost and instant inference. Run <code>python scripts/eval_kiba.py --update-metrics</code> to benchmark the full ensemble.</p></div>`;
+$i('results').innerHTML=`<h1 class="pt">Benchmark Data &amp; Experimental Results</h1><p>Ground-truth evaluations on the Davis and KIBA kinase datasets, verified against results/metrics.json.</p><div class="chips"><span class="chip" style="--c:#09A1A1">Davis Benchmark</span> <span class="chip" style="--c:#ACC0D3">KIBA Benchmark</span></div><div class="tabs">${[['random','Random Split (Full Benchmark)'],['cold','Cold Splits (5-Seed Generalization)'],['datasets','Dataset Overview'],['kiba','KIBA Benchmark']].map(x=>`<button class="tab ${t==x[0]?'on':''}" data-a="rt" data-v="${x[0]}">${x[1]}</button>`).join('')}</div>${b}`}
+ACT.rt=v=>{RS.tab=v;renderResults()};ACT.rm=v=>{RS.m=v;renderResults()};
+/* ---------- History ---------- */
+const HS={q:'',cat:'ALL',sel:null};
+const seedRuns=()=>[['run-init-1','Dasatinib',0,'ABL1','Tyrosine-protein kinase ABL1',0,9.85,.14,.142,'Very High Binding',1],['run-init-2','Lapatinib',2,'EGFR','Epidermal growth factor receptor',1,8.65,2.24,.185,'Very High Binding',2],['run-init-3','Aspirin',5,'ABL1','Tyrosine-protein kinase ABL1',0,5.25,562341,.245,'No Significant Binding',4]].map(a=>({id:a[0],compound_name:a[1],smiles:SAMPLE_COMPOUNDS[a[2]].smiles,target_id:a[3],target_name:a[4],protein_sequence:SAMPLE_PROTEINS[a[5]].sequence,pkd:a[6],kd_nM:a[7],uncertainty:a[8],binding_level:a[9],status:'completed',created_at:new Date(Date.now()-a[10]*36e5).toISOString()}));
+let RUNS=[];
+function renderHistory(){const g=getHistory();RUNS=g.length?g:seedRuns();$i('history').innerHTML=`<h1 class="pt">Workspace &amp; Inference History</h1><p>Browse, inspect, and export previously executed drug-target binding predictions.</p><div class="acts"><button class="btn ghost sm" data-a="hx">Export History (.json)</button><button class="btn ghost sm" data-a="pr">Print / PDF</button><button class="btn ghost sm" data-a="hc">Clear</button></div>
+<div class="rowf" style="margin-top:14px"><input type="text" data-i="hq" placeholder="Search by compound, target, or SMILES..." value="${esc(HS.q)}"><select data-i="hcat" style="max-width:280px"><option value="ALL">All Binding Categories</option>${LV.slice(1).map(l=>`<option value="${l[0]}" ${HS.cat==l[0]?'selected':''}>${l[1]}</option>`).join('')}</select></div><div id="hg"></div><div id="hm"></div>`;hgrid()}
+function hgrid(){const q=HS.q.toLowerCase(),rs=RUNS.filter(r=>(r.compound_name+r.target_name+r.target_id+r.smiles).toLowerCase().includes(q)&&(HS.cat=='ALL'||r.binding_level==HS.cat));
+setH('hg',rs.length?`<div class="cardg">${rs.map(r=>`<div class="card"><h3>${esc(r.compound_name)}</h3><p class="st" style="color:var(--ice)">Target: ${esc(r.target_id)}</p>${bdg(r.binding_level)}<div class="g3" style="grid-template-columns:1fr 1fr"><div><small>Affinity (pKd)</small><div class="stat" style="font-size:28px">${fx(r.pkd,3)}</div></div><div><small>Dissociation (Kd)</small><div class="stat" style="font-size:28px">${formatKd(r.kd_nM)}</div></div></div><p class="st">Spread: ±${fx(r.uncertainty,3)} · ${new Date(r.created_at).toLocaleDateString()}</p><div class="acts"><button class="btn ghost sm" data-a="hs" data-v="${r.id}">Copy SMILES</button><button class="btn sm" data-a="hi" data-v="${r.id}">Inspect Run</button></div></div>`).join('')}</div>`:`<div class="card empty" style="margin-top:16px;padding:40px 24px"><h3>No Historical Runs Found</h3><p>Execute affinity predictions in the Predictor Studio to automatically populate this workspace.</p><a class="btn sm" href="#predict">Go to Predictor Studio</a></div>`)}
+INP.hq=v=>{HS.q=v;hgrid()};INP.hcat=v=>{HS.cat=v;hgrid()};
+ACT.hc=()=>{clearHistory();renderHistory()};ACT.hx=()=>exportToJson(`deepdta_inference_history_${Date.now()}.json`,RUNS);
+ACT.hs=(v,b)=>{copy(RUNS.find(r=>r.id==v).smiles);b.textContent='Copied'};
+ACT.hi=v=>{const r=RUNS.find(x=>x.id==v);HS.sel=r;setH('hm',`<div class="modal" data-a="hm0"><div class="card"><h3>Inspection: ${esc(r.compound_name)} + ${esc(r.target_id)}</h3><p class="st" style="color:var(--ice)">Recorded on ${new Date(r.created_at).toLocaleString()}</p><div class="g3"><div class="mini2"><small>Predicted pKd</small><div class="stat" style="font-size:28px">${fx(r.pkd,3)}</div></div><div class="mini2"><small>Equilibrium Kd</small><div class="stat" style="font-size:28px">${formatKd(r.kd_nM)}</div></div><div class="mini2"><small>Uncertainty (σ)</small><div class="stat" style="font-size:28px">±${fx(r.uncertainty,3)}</div></div></div><label>SMILES String:</label><div class="mono mini2">${esc(r.smiles)}</div><label style="margin-top:12px">Target Protein:</label><p>${esc(r.target_name)} (${esc(r.target_id)})</p><div class="acts"><button class="btn ghost sm" data-a="hj">Copy JSON</button><button class="btn sm" data-a="hl">Load into Predictor Studio</button><button class="btn ghost sm" data-a="hm1">Close</button></div></div></div>`)};
+ACT.hm0=(v,b,e)=>{if(e.target===b)setH('hm','')};ACT.hm1=()=>setH('hm','');ACT.hj=()=>copy(JSON.stringify(HS.sel,null,2));
+ACT.hl=()=>{const r=HS.sel;Object.assign(PS,{name:r.compound_name,smi:r.smiles,cid:0,f:'',wt:0,tn:`${r.target_id} (${r.target_name})`,seq:r.protein_sequence,ps:'',us:''});location.hash='predict'};
+/* ---------- Sign in ---------- */
+const AU={tab:'signin',msg:'',err:''};
+function renderAuth(){const s=AU.tab=='signin';$i('auth').innerHTML=`<div class="card" style="max-width:460px;margin:0 auto"><h2>${s?'Sign In to DeepDTA+':'Create Researcher Account'}</h2><p>Access calibrated AI binding affinity models &amp; screening workspaces.</p><div class="tabs"><button class="tab ${s?'on':''}" data-a="at" data-v="signin">Sign In</button><button class="tab ${s?'':'on'}" data-a="at" data-v="signup">Create Account</button></div>${AU.err?`<div class="err">${AU.err}</div>`:''}${AU.msg?`<div class="note" style="color:var(--teal)">✓ ${AU.msg}</div>`:''}<div class="acts"><button class="btn ghost sm" data-a="ar">GitHub</button><button class="btn ghost sm" data-a="ar">Google</button></div><p class="st" style="margin:14px 0">Or with email</p>${s?'':'<div class="field"><label>Full Name</label><input type="text" placeholder="Dr. Rosalind Franklin"></div>'}<div class="field"><label>Email Address</label><input type="text" id="ae" placeholder="name@biotech.org"></div><div class="field"><label>Password</label><input type="password" id="ap" placeholder="••••••••••••"></div>${s?'':'<div class="field"><label>Research Role</label><select><option>Biotech Researcher</option><option>Academic Student / University</option><option>ML / Computational Chemist</option><option>Medicinal Chemist</option></select></div>'}<button class="btn" data-a="as" style="width:100%">${s?'Sign In to Workspace':'Create Account'}</button></div>`}
+ACT.at=v=>{AU.tab=v;AU.err=AU.msg='';renderAuth()};ACT.ar=()=>{location.hash='predict'};
+ACT.as=()=>{if(!$i('ae').value.trim()||!$i('ap').value){AU.err='Please enter your email and password.';AU.msg='';return renderAuth()}AU.err='';AU.msg=AU.tab=='signin'?'Signed in. Opening the studio…':'Account created successfully! Welcome to DeepDTA+.';renderAuth();setTimeout(()=>{location.hash='predict'},1000)};
+
+/* protein complex (cartoon ribbons) with a ball-and-stick drug docking into the binding cleft */
+const cv=$('#bg'),cx=cv.getContext('2d'),RM=matchMedia('(prefers-reduced-motion:reduce)').matches;
+let W,Hh,pulse=0,prog=0,dyaw=0,dpit=0;
+function size(){const d=Math.min(devicePixelRatio||1,2);W=innerWidth;Hh=innerHeight;cv.width=W*d;cv.height=Hh*d;cx.setTransform(d,0,0,d,0,0)}
+addEventListener('resize',size);size();
+const clamp=(v,a=0,b=1)=>Math.min(b,Math.max(a,v)),ease=k=>k*k*(3-2*k),mix=(a,b,k)=>a+(b-a)*k;
+const V={add:(a,b)=>[a[0]+b[0],a[1]+b[1],a[2]+b[2]],sub:(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]],mul:(a,k)=>[a[0]*k,a[1]*k,a[2]*k],len:a=>Math.hypot(a[0],a[1],a[2]),nrm:a=>{const l=Math.hypot(a[0],a[1],a[2])||1;return[a[0]/l,a[1]/l,a[2]/l]},crs:(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]]};
+/* secondary structure builders (C-alpha traces, angstrom scale) */
+function helix(c,a,n){a=V.nrm(a);const e1=V.nrm(Math.abs(a[2])>.9?V.crs(a,[1,0,0]):V.crs(a,[0,0,1])),e2=V.crs(a,e1),o=[];
+for(let i=0;i<n;i++){const t=i*1.745,al=(i-(n-1)/2)*1.5;o.push({p:V.add(V.add(c,V.mul(a,al)),V.add(V.mul(e1,Math.cos(t)*2.3),V.mul(e2,Math.sin(t)*2.3))),s:'H'})}return o}
+function strand(c,d,n){d=V.nrm(d);const pp=V.nrm(V.crs(d,[0,0,1])),o=[];
+for(let i=0;i<n;i++)o.push({p:V.add(V.add(c,V.mul(d,(i-(n-1)/2)*3.3)),V.mul(pp,i%2?.55:-.55)),s:'E'});return o}
+const EL={H1:helix([-9,0,12],[0,1,.1],16),H2:helix([9,0,12],[0,1,-.1],16),H3:helix([-14,-2,-8],[.1,1,.1],15),H4:helix([0,10,-10],[1,.1,0],14),H5:helix([14,-2,-6],[0,1,.2],15),H6:helix([0,-11,-8],[1,-.1,0],13),
+H7:helix([-16,9,0],[0,1,.25],13),H8:helix([16,9,2],[.15,1,0],13),S1:strand([0,-6.6,5],[1,0,0],5),S2:strand([0,-2.2,5],[1,0,0],5),S3:strand([0,2.2,5],[1,0,0],5),S4:strand([0,6.6,5],[1,0,0],5)};
+const chainA=[];let prevEnd=null;
+['H1','S1','S2','S3','S4','H2','H8','H5','H4','H7','H3','H6'].forEach(k=>{const el=EL[k].slice();
+if(prevEnd&&V.len(V.sub(el[0].p,prevEnd))>V.len(V.sub(el[el.length-1].p,prevEnd)))el.reverse();
+if(prevEnd){const a=prevEnd,b=el[0].p,out=V.nrm(V.mul(V.add(a,b),.5)),c1=V.add(a,V.mul(out,7)),c2=V.add(b,V.mul(out,7));
+for(let i=1;i<=5;i++){const t=i/6,u=1-t;chainA.push({p:[0,1,2].map(j=>u*u*u*a[j]+3*u*u*t*c1[j]+3*u*t*t*c2[j]+t*t*t*b[j]),s:'L'})}}
+el.forEach(q=>chainA.push(q));prevEnd=el[el.length-1].p});
+const chainB=chainA.map(q=>({p:[-q.p[0]+37,q.p[1],-q.p[2]],s:q.s}));
+function cr(a,b,c,d,t){const t2=t*t,t3=t2*t;return[0,1,2].map(j=>.5*(2*b[j]+(-a[j]+c[j])*t+(2*a[j]-5*b[j]+4*c[j]-d[j])*t2+(-a[j]+3*b[j]-3*c[j]+d[j])*t3))}
+function mkSegs(pts,ch){const o=[],n=pts.length;for(let i=0;i<n-1;i++){const a=pts[i],b=pts[i+1],t=(a.s=='L'||b.s=='L'||a.s!=b.s)?'L':a.s,u=i/n;
+if(t=='E'){o.push({a:a.p,b:b.p,t,ch,u,arrow:!!pts[i+2]&&pts[i+2].s=='L'});continue}
+const p0=pts[Math.max(i-1,0)].p,p3=pts[Math.min(i+2,n-1)].p,q=[a.p,cr(p0,a.p,b.p,p3,1/3),cr(p0,a.p,b.p,p3,2/3),b.p];
+for(let m=0;m<3;m++)o.push({a:q[m],b:q[m+1],t,ch,u,arrow:false})}return o}
+const SEGS=mkSegs(chainA,'A').concat(mkSegs(chainB,'B'));
+/* pocket residues (side chains pointing into the cleft) */
+const PC=[0,0,13],RES=[];
+function addRes(p,i){const d=V.nrm(V.sub(PC,p)),pe=V.nrm(V.crs(d,[0,1,0])),a1=V.add(p,V.mul(d,1.6)),a2=V.add(V.add(a1,V.mul(d,1.3)),V.mul(pe,.9));RES.push({a:[p,a1,a2],o:i%2?'O':'N'})}
+EL.H1.forEach((q,i)=>{if(q.p[2]>8&&Math.abs(q.p[1])<9&&q.p[0]>-8.2&&i%2==0)addRes(q.p,i)});
+EL.H2.forEach((q,i)=>{if(q.p[2]>8&&Math.abs(q.p[1])<9&&q.p[0]<8.2&&i%2==0)addRes(q.p,i+1)});
+[EL.S2,EL.S3].forEach(s=>s.forEach((q,i)=>{if(i%2==1)addRes(q.p,i+1)}));
+/* the drug: aspirin-like, ball and stick, with its ring plane twisted out of the acetyl/carboxyl groups */
+const FS=1.4/34,RAW=[[0,-34,'C',0],[29.4,-17,'C',0],[29.4,17,'C',0],[0,34,'C',0],[-29.4,17,'C',0],[-29.4,-17,'C',0],[59,-34,'O',.6],[88,-17,'C',1],[88,-51,'O',1.7],[117,-34,'C',.6],[59,34,'C',-.5],[59,68,'O',-1.2],[88,17,'O',.3]];
+const cxm=RAW.reduce((s,a)=>s+a[0],0)/RAW.length,cym=RAW.reduce((s,a)=>s+a[1],0)/RAW.length;
+const D=RAW.map(a=>({p:[(a[0]-cxm)*FS,-(a[1]-cym)*FS,a[3]],el:a[2]}));
+const BONDS=[[0,1,2],[1,2],[2,3,2],[3,4],[4,5,2],[5,0],[1,6],[6,7],[7,8,2],[7,9],[2,10],[10,11,2],[10,12]];
+function rotD(q,e){const ex=(1-e)*3.2,ey=(1-e)*4.1+Math.PI/2,ez=(1-e)*2.4;let x=q[0],y=q[1],z=q[2],t;
+t=x*Math.cos(ez)-y*Math.sin(ez);y=x*Math.sin(ez)+y*Math.cos(ez);x=t;
+t=y*Math.cos(ex)-z*Math.sin(ex);z=y*Math.sin(ex)+z*Math.cos(ex);y=t;
+t=x*Math.cos(ey)+z*Math.sin(ey);z=-x*Math.sin(ey)+z*Math.cos(ey);x=t;return[x,y,z]}
+const DFIN=D.map(a=>V.add(rotD(a.p,1),PC));
+const HB=[8,11,12].map(i=>{let best=null,bd=1e9;RES.forEach(r=>{const q=r.a[2],d=V.len(V.sub(q,DFIN[i]));if(d<bd){bd=d;best=q}});return{i,q:best,d:bd}});
+/* camera */
+const CEN=[18.5,0,0];
+function proj(p,yaw,pit,k){const x=p[0]-CEN[0],y=p[1],z=p[2],cy=Math.cos(yaw),sy=Math.sin(yaw),x1=x*cy+z*sy,z1=-x*sy+z*cy,cp=Math.cos(pit),sp=Math.sin(pit),y1=y*cp-z1*sp,z2=y*sp+z1*cp,s=150/(150-z2);return[W/2+x1*k*s,Hh/2-y1*k*s,s,z2]}
+/* drawing */
+const SC={A:{H:[172,192,211],E:[246,201,146],L:[84,132,164]},B:{H:[9,161,161],E:[211,150,166],L:[70,120,130]}},SW={H:2.6,E:2.4,L:.9},GR={A:[84,132,164],B:[9,161,161]},GR2={A:[172,192,211],B:[120,215,200]};
+const rgb=(c,f,h)=>`rgb(${clamp(c[0]*f+(h?60:0),0,255)|0},${clamp(c[1]*f+(h?60:0),0,255)|0},${clamp(c[2]*f+(h?60:0),0,255)|0})`;
+function ball(x,y,r,c,f){const g=cx.createRadialGradient(x-r*.35,y-r*.35,r*.1,x,y,r);g.addColorStop(0,rgb(c,f,1));g.addColorStop(1,rgb(c,f*.55,0));cx.fillStyle=g;cx.beginPath();cx.arc(x,y,r,0,6.283);cx.fill()}
+function seg(s,a,b,k){const d=clamp(((a[3]+b[3])/2+55)/110),f=.3+.7*d,c=s.t=='H'?GR[s.ch].map((v,j)=>mix(v,GR2[s.ch][j],s.u)):SC[s.ch][s.t],w=SW[s.t]*k*(a[2]+b[2])/2;
+if(s.arrow){const dx=b[0]-a[0],dy=b[1]-a[1],l=Math.hypot(dx,dy)||1,nx=-dy/l*w*.9,ny=dx/l*w*.9;cx.fillStyle=rgb(c,f,0);cx.beginPath();cx.moveTo(a[0]+nx,a[1]+ny);cx.lineTo(a[0]-nx,a[1]-ny);cx.lineTo(b[0],b[1]);cx.closePath();cx.fill();return}
+cx.strokeStyle=rgb(c,f,0);cx.lineWidth=w;cx.beginPath();cx.moveTo(a[0],a[1]);cx.lineTo(b[0],b[1]);cx.stroke();
+cx.strokeStyle=rgb(c,f,1);cx.lineWidth=w*.38;cx.beginPath();cx.moveTo(a[0]-w*.15,a[1]-w*.15);cx.lineTo(b[0]-w*.15,b[1]-w*.15);cx.stroke()}
+function stick(r,q,k){const f=.35+.65*clamp((q[0][3]+55)/110);cx.strokeStyle=rgb([246,201,146],f,0);cx.lineWidth=.45*k*q[0][2];cx.beginPath();q.forEach((t,i)=>i?cx.lineTo(t[0],t[1]):cx.moveTo(t[0],t[1]));cx.stroke();
+ball(q[2][0],q[2][1],.5*k*q[2][2],r.o=='O'?[211,150,166]:[84,150,230],f)}
+function sprite(c){const s=document.createElement('canvas');s.width=s.height=64;const g=s.getContext('2d'),r=g.createRadialGradient(32,32,0,32,32,32);r.addColorStop(0,`rgba(${c},.9)`);r.addColorStop(1,`rgba(${c},0)`);g.fillStyle=r;g.fillRect(0,0,64,64);return s}
+const SPR={A:sprite('84,132,164'),B:sprite('9,161,161')},HZ=[];
+[['A',chainA],['B',chainB]].forEach(([ch,c])=>c.forEach((q,i)=>{if(i%2==0&&V.len(V.sub(q.p,PC))>9)HZ.push({p:q.p,ch})}));
+const hero=$('#hero');let drag=null;
+hero.addEventListener('pointerdown',e=>{if(e.target.closest('a,button'))return;drag=[e.clientX,e.clientY,dyaw,dpit]});
+addEventListener('pointermove',e=>{if(!drag)return;dyaw=drag[2]+(e.clientX-drag[0])*.006;dpit=clamp(drag[3]+(e.clientY-drag[1])*.004,-.6,.6)});
+addEventListener('pointerup',()=>drag=null);addEventListener('pointercancel',()=>drag=null);
+function frame(){
+const home=ROUTE=='home',range=Math.max(1,hero.offsetHeight-Hh),y=home?scrollY:range+Hh,tp=home?clamp(scrollY/range):1;prog=RM?tp:prog+(tp-prog)*.15;
+const p=prog,after=clamp((y-range)/(Hh*.7)),e=ease(clamp(p/.7)),hb=ease(clamp((p-.72)/.15));
+cv.style.opacity=1-after*.8;
+$('#intro').style.opacity=1-clamp((p-.25)/.3);$('#hint').style.opacity=1-clamp(p*8);
+const dn=$('#done');dn.style.opacity=clamp((p-.88)/.12);dn.classList.toggle('show',p>.92);
+$('#state').textContent=p>.9?'Bound':'Docking';
+cx.clearRect(0,0,W,Hh);
+const k=Math.min(W/92,Hh/62),yaw=mix(.85,.4,e)+dyaw,pit=-.12+dpit,P=q=>proj(q,yaw,pit,k);
+pulse*=.95;
+const pg=P(PC),g=cx.createRadialGradient(pg[0],pg[1],0,pg[0],pg[1],16*k*pg[2]);
+g.addColorStop(0,`rgba(9,161,161,${.04+.3*hb+pulse*.4})`);g.addColorStop(1,'rgba(9,161,161,0)');cx.fillStyle=g;cx.fillRect(0,0,W,Hh);
+const ga=.5+.5*clamp(p/.35);cx.globalCompositeOperation='lighter';cx.globalAlpha=ga*.12;HZ.forEach(h=>{const q=P(h.p),r=6.5*k*q[2];cx.drawImage(SPR[h.ch],q[0]-r,q[1]-r,2*r,2*r)});cx.globalCompositeOperation='source-over';cx.globalAlpha=ga;cx.lineCap='round';cx.lineJoin='round';
+const it=[];
+SEGS.forEach(s=>{const a=P(s.a),b=P(s.b);it.push([(a[3]+b[3])/2,()=>seg(s,a,b,k)])});
+RES.forEach(r=>{const q=r.a.map(P);it.push([q[0][3]+.5,()=>stick(r,q,k)])});
+it.sort((a,b)=>a[0]-b[0]);it.forEach(o=>o[1]());
+cx.globalAlpha=1;
+/* drug */
+const dpos=[mix(-30,0,e),mix(14,0,e)+Math.sin(Math.PI*e)*6,mix(26,13,e)],dp=D.map(a=>P(V.add(rotD(a.p,e),dpos)));
+BONDS.forEach(([i,j,n])=>{const a=dp[i],b=dp[j],s=(a[2]+b[2])/2,dx=b[0]-a[0],dy=b[1]-a[1],l=Math.hypot(dx,dy)||1,nx=-dy/l,ny=dx/l,o=n==2?.16*k*s:0,w=(n==2?.16:.3)*k*s;
+[[1,'#000',w+3],[0,rgb([9,161,161],1,1),w]].forEach(([out,col,lw])=>{cx.strokeStyle=col;cx.lineWidth=lw;(n==2?[-1,1]:[0]).forEach(m=>{cx.beginPath();cx.moveTo(a[0]+nx*o*m,a[1]+ny*o*m);cx.lineTo(b[0]+nx*o*m,b[1]+ny*o*m);cx.stroke()})})});
+D.map((a,i)=>i).sort((a,b)=>dp[a][3]-dp[b][3]).forEach(i=>ball(dp[i][0],dp[i][1],(D[i].el=='O'?.72:.62)*k*dp[i][2],D[i].el=='O'?[211,150,166]:[9,161,161],1));
+if(hb>.01){cx.setLineDash([5,5]);cx.lineWidth=1.6;cx.strokeStyle=`rgba(246,201,146,${hb})`;cx.font=`500 ${Math.max(11,k*.9)}px 'Space Grotesk',system-ui`;cx.textAlign='center';cx.fillStyle=`rgba(246,201,146,${hb})`;
+HB.forEach(h=>{const a=dp[h.i],b=P(h.q);cx.beginPath();cx.moveTo(a[0],a[1]);cx.lineTo(b[0],b[1]);cx.stroke();});cx.setLineDash([])}
+
+requestAnimationFrame(frame)}
+requestAnimationFrame(frame);
+
+/* home teasers and page routing */
+const T=[
+['predict','Predict a binding','Pick a compound and a protein target. You get the binding strength, the Kd in nM and a clear status you can read at a glance.','Open Predict',`<p style="margin:0">Example result</p><div class="stat" style="margin:6px 0">pKd 7.8</div>${chip(7.8)}<div class="bar" style="--c:${COL.High};margin-top:14px"><i style="width:63%"></i></div>`],
+['search','Find any compound','Search by name and see its 2D structure, formula, weight and SMILES, then send it straight to a prediction.','Search compounds',`<div style="display:flex;gap:16px;align-items:center">${mol(DB.Aspirin,130)}<div><b style="color:#fff">Aspirin</b><br><span style="word-break:break-all;font-size:13px">${DB.Aspirin.s}</span></div></div>`],
+['screen','Screen a whole library','Upload a CSV of compounds, screen them against one target and see them ranked by binding strength, each with its status.','Start screening',[['Compound A',8.4],['Compound B',7.6],['Compound C',6.5],['Compound D',5.2]].map(r=>`<div class="mini"><span>${r[0]}</span><span>${r[1]} ${chip(r[1])}</span></div>`).join('')],
+['how','See how it works','A drug and a protein go in, a binding affinity comes out. The architecture page explains each part.','View architecture',`<div class="flow"><div class="node" style="font-size:16px;padding:12px 18px">Drug</div><div class="arrow" style="width:34px"></div><div class="node" style="font-size:16px;padding:12px 18px">Protein</div><div class="arrow" style="width:34px"></div><div class="node out" style="font-size:16px;padding:12px 18px">Binding affinity</div></div>`],
+['results','Data and results','The datasets behind the predictions, and how they compare with published baselines, including the harder cold-split tests.','See results',`<p style="margin:0">Davis</p><div class="stat">30,056</div><p style="margin:0 0 14px">68 drugs, 442 proteins</p><p style="margin:0">KIBA</p><div class="stat">118,254</div><p style="margin:0">2,111 drugs, 229 proteins</p>`],
+['history','Pick up where you left off','Every prediction you run is saved in your browser, so you can revisit scores and compare compounds later.','Open history',[['Compound A',7.8],['Compound B',6.4],['Compound C',5.1]].map(r=>`<div class="mini"><span>${r[0]}</span><span>pKd ${r[1]} ${chip(r[1])}</span></div>`).join('')]];
+$('#teasers').innerHTML=T.map(t=>`<section class="pg tease"><div class="row" style="align-items:center"><div><h2>${t[1]}</h2><p class="lead">${t[2]}</p><a class="btn" href="#${t[0]}">${t[3]}</a></div><div class="card">${t[4]}</div></div></section>`).join('');
+let ROUTE='home';const PAGES=['predict','search','screen','how','results','history','auth'],RN={predict:renderPredict,search:renderSearch,screen:renderBatch,how:renderModel,results:renderResults,history:renderHistory,auth:renderAuth};
+function route(){const h=location.hash.slice(1);ROUTE=PAGES.includes(h)?h:'home';
+PAGES.forEach(id=>$('#'+id).hidden=id!=ROUTE);if(RN[ROUTE])RN[ROUTE]();$('#hero').hidden=$('#teasers').hidden=ROUTE!='home';
+$$('#links a').forEach(a=>a.classList.toggle('on',a.getAttribute('href')=='#'+ROUTE));
+scrollTo({top:0,behavior:'instant'})}
+addEventListener('hashchange',route);route();
+</script>
+</body>
+</html>

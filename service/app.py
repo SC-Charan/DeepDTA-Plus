@@ -16,6 +16,7 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 from fastapi import FastAPI, HTTPException, status  # noqa: E402
+from fastapi.responses import FileResponse, HTMLResponse  # noqa: E402
 
 from dtaplus.data import DavisData  # noqa: E402
 from dtaplus.models.ensemble import DTAEnsemble  # noqa: E402
@@ -78,6 +79,16 @@ app = FastAPI(
     redoc_url="/redoc",
     lifespan=lifespan,
 )
+
+
+@app.get("/", include_in_schema=False)
+@app.get("/demo", include_in_schema=False)
+def serve_interactive_studio():
+    """Serves the standalone interactive DeepDTA+ Studio UI."""
+    index_file = _ROOT / "index.html"
+    if index_file.exists():
+        return FileResponse(index_file)
+    return HTMLResponse("<h1>DeepDTA+ API is running. Visit /docs for the API schema.</h1>")
 
 
 @app.get("/health", response_model=HealthResponse, tags=["Health"])
@@ -159,3 +170,10 @@ def predict_batch_affinity(request: BatchPredictionRequest) -> list[PredictionRe
             )
         )
     return responses
+
+
+@app.post("/batch", response_model=list[PredictionResponse], tags=["Inference"], include_in_schema=False)
+def predict_batch_affinity_alias(request: BatchPredictionRequest) -> list[PredictionResponse]:
+    """Alias for /predict_batch to support standard web clients."""
+    return predict_batch_affinity(request)
+
