@@ -54,14 +54,15 @@ async def lifespan(app: FastAPI):
     _is_cloud = os.environ.get("RENDER") is not None or os.environ.get("LOW_MEMORY", "0") == "1"
 
     _n_seeds = 1 if (_test_mode or _is_cloud) else 3
-    _idx = train_idx[:200] if _test_mode else train_idx
+    _idx = train_idx[:200] if _test_mode else (train_idx[:5000] if _is_cloud else train_idx)
+    _val_idx = None if (_test_mode or _is_cloud) else splits.val_idx
 
     model_instance = DTAEnsemble(
         num_gbm_seeds=_n_seeds,
         random_state=42,
         cnn_checkpoint_path=ckpt_path if os.path.exists(ckpt_path) else None,
     )
-    model_instance.fit_dataset(data, _idx, val_idx=None if _test_mode else splits.val_idx, split_type="random")
+    model_instance.fit_dataset(data, _idx, val_idx=_val_idx, split_type="random")
 
     cnn_status = "active" if (model_instance and model_instance.cnn_available) else "dormant (weights not found)"
     logger.info("DeepDTA+ ensemble ready to serve requests (CNN branch: %s, Seeds: %d).", cnn_status, _n_seeds)
