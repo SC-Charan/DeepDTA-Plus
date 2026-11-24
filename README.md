@@ -1,6 +1,3 @@
-### CHECK WHATSAPP 
-
-
 # DeepDTA-Plus 🧬
 
 > **Drug-Target Binding Affinity Prediction Platform — Team G1542**
