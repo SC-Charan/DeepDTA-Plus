@@ -203,9 +203,9 @@ class DavisData:
             [encode_protein(p, max_len=self.seq_len) for p in self.protein_sequences]
         )
 
-        # Pairwise encoded tensors
-        self.encoded_drugs = self.unique_encoded_drugs[self.ri]
-        self.encoded_proteins = self.unique_encoded_proteins[self.ci]
+        # Pairwise encoded tensors (lazy-loaded on demand to preserve low-memory footprint)
+        self._encoded_drugs: np.ndarray | None = None
+        self._encoded_proteins: np.ndarray | None = None
 
         # Load official folds
         folds_dir = os.path.join(data_dir, "folds")
@@ -239,6 +239,20 @@ class DavisData:
             split_type="random",
             seed=val_fold_idx,
         )
+
+    @property
+    def encoded_drugs(self) -> np.ndarray:
+        """Lazy property for encoded drugs tensor."""
+        if self._encoded_drugs is None:
+            self._encoded_drugs = self.unique_encoded_drugs[self.ri]
+        return self._encoded_drugs
+
+    @property
+    def encoded_proteins(self) -> np.ndarray:
+        """Lazy property for encoded proteins tensor."""
+        if self._encoded_proteins is None:
+            self._encoded_proteins = self.unique_encoded_proteins[self.ci]
+        return self._encoded_proteins
 
     def get_cold_drug_split(
         self,
@@ -297,6 +311,20 @@ class DavisData:
             split_type="cold_target",
             seed=seed,
         )
+
+    @property
+    def encoded_drugs(self) -> np.ndarray:
+        """Lazy property for encoded drugs tensor."""
+        if self._encoded_drugs is None:
+            self._encoded_drugs = self.unique_encoded_drugs[self.ri]
+        return self._encoded_drugs
+
+    @property
+    def encoded_proteins(self) -> np.ndarray:
+        """Lazy property for encoded proteins tensor."""
+        if self._encoded_proteins is None:
+            self._encoded_proteins = self.unique_encoded_proteins[self.ci]
+        return self._encoded_proteins
 
 
 
@@ -374,9 +402,9 @@ class KibaData:
             [encode_protein(p, max_len=self.seq_len) for p in self.protein_sequences]
         )
 
-        # Pairwise encoded tensors
-        self.encoded_drugs = self.unique_encoded_drugs[self.ri]
-        self.encoded_proteins = self.unique_encoded_proteins[self.ci]
+        # Pairwise encoded tensors (lazy-loaded on demand to preserve low-memory footprint)
+        self._encoded_drugs: np.ndarray | None = None
+        self._encoded_proteins: np.ndarray | None = None
 
         # Load official folds (same setting1 format as Davis)
         folds_dir = os.path.join(data_dir, "folds")
@@ -408,3 +436,17 @@ class KibaData:
             split_type="random",
             seed=val_fold_idx,
         )
+
+    @property
+    def encoded_drugs(self) -> np.ndarray:
+        """Lazy property for encoded drugs tensor."""
+        if self._encoded_drugs is None:
+            self._encoded_drugs = self.unique_encoded_drugs[self.ri]
+        return self._encoded_drugs
+
+    @property
+    def encoded_proteins(self) -> np.ndarray:
+        """Lazy property for encoded proteins tensor."""
+        if self._encoded_proteins is None:
+            self._encoded_proteins = self.unique_encoded_proteins[self.ci]
+        return self._encoded_proteins
