@@ -97,3 +97,53 @@ class DeepDTACNN(nn.Module):
         pred = self.out(h3).squeeze(-1)  # (B,)
 
         return pred
+
+
+class Deep2TowerDTA(nn.Module):
+    """
+    Deep 2-Tower Neural Interaction Model for large-scale DTA (KIBA benchmark).
+    Transforms drug SVD features (256d) and protein SVD features (128d) through
+    dual projection towers with LayerNorm, and evaluates explicit Hadamard
+    cross-interactions [z_d, z_p, z_d * z_p] (384d) through a 3-layer MLP head.
+    """
+
+    def __init__(
+        self,
+        d_in: int = 256,
+        p_in: int = 128,
+        hidden: int = 128,
+        dropout: float = 0.2,
+    ):
+        super().__init__()
+        self.bias = nn.Parameter(torch.zeros(1))
+
+        self.d_net = nn.Sequential(
+            nn.Linear(d_in, 256),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(256, hidden),
+            nn.LayerNorm(hidden),
+        )
+
+        self.p_net = nn.Sequential(
+            nn.Linear(p_in, 256),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(256, hidden),
+            nn.LayerNorm(hidden),
+        )
+
+        self.mlp = nn.Sequential(
+            nn.Linear(hidden * 3, 256),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(256, 128),
+            nn.ReLU(),
+            nn.Linear(128, 1),
+        )
+
+    def forward(self, d_feat: torch.Tensor, p_feat: torch.Tensor) -> torch.Tensor:
+        zd = self.d_net(d_feat)
+        zp = self.p_net(p_feat)
+        inter = torch.cat([zd, zp, zd * zp], dim=-1)
+        return self.mlp(inter).squeeze(-1) + self.bias
